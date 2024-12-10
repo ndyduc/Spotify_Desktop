@@ -154,7 +154,8 @@ public class MongoDB {
                     .append("album", song.getAlbum())
                     .append("fileName", song.getTitle()+" - "+song.getArtist()+".mp3")
                     .append("link", song.getLink())
-                    .append("where", song.getWhere());
+                    .append("where", song.getWhere())
+                    .append("artist_id", song.getArtist_id());
 
             collection.insertOne(doc);
         } catch (Exception e) {
@@ -268,6 +269,15 @@ public class MongoDB {
             e.printStackTrace();
             System.out.println("Error removing artist from love list: " + e.getMessage());
         }
+    }
+
+    public String File_name(Collection i){
+        String nam = (i.getPublisher_metadata() != null && i.getPublisher_metadata().getArtist() != null)
+                ? i.getPublisher_metadata().getArtist()
+                : i.getUser().getUsername();
+
+        String file = i.getTitle()+" - "+nam+".mp3";
+        return file;
     }
 
     public String get_Artist(Collection i){

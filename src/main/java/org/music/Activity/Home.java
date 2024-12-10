@@ -96,7 +96,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         List<Playlists> pla = mongo.get_Playlists("_ndyduc_");
         playlist = new Playlist(30, pla.getFirst(), stream, window, this);
         Collection user = sc.getBestUser("Cigarettes after sex");
-        artist = new Artist(30, user, window, this);
+        artist = new Artist(30, user, stream, window, this);
 
         main_center.add(house,"house");
         main_center.add(s_all, "search_all");
@@ -844,12 +844,24 @@ public class Home implements Queue_Lis, Artist_Lis{
         return popupMenu;
     }
 
-    public void reload_Artist(int id){
+    public void reload_Artist(int id, int full){
         Collection user = sc.get_user_by_id(id);
-        artist.refresh_neun(user);
+        artist.refresh_neun(user, full);
         center_home.show(main_center, "artist");
     }
 
+    public void play_clicked(){ Pausebtn.doClick();}
+
+    public Queue_Item cv_track_to_queuei(org.music.models.Search_Tracks.Collection tracks) {
+        Queue_Item item = new Queue_Item();
+        item.setTitle(tracks.getTitle());
+        item.setArtist(tracks.getUser().getUsername());
+        item.setLink(tracks.getPermalink_url());
+        item.setFileName(tracks.getTitle()+" - "+tracks.getUser().getUsername()+".mp3");
+        item.setImgCover(tracks.getArtwork_url());
+        item.setId(tracks.getId());
+        return item;
+    }
 }
 
 

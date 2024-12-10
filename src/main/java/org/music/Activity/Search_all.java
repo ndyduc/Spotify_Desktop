@@ -936,22 +936,13 @@ public class Search_all extends Border_Radius {
 
     private void Track_Stream(Stream stream, int id){
         org.music.models.Search_Tracks.Collection track = sc.get_track_by_id(id);
-        Queue_Item qi = cv_track_to_queuei(track);
+        Queue_Item qi = home.cv_track_to_queuei(track);
         stream.addToFront(qi);
         home.setCurrentSong(qi);
         home.Play_track();
     }
 
-    private Queue_Item cv_track_to_queuei(org.music.models.Search_Tracks.Collection tracks) {
-        Queue_Item item = new Queue_Item();
-        item.setTitle(tracks.getTitle());
-        item.setArtist(tracks.getUser().getUsername());
-        item.setLink(tracks.getPermalink_url());
-        item.setFileName(tracks.getTitle()+" - "+tracks.getUser().getUsername()+".mp3");
-        item.setImgCover(tracks.getArtwork_url());
-        item.setId(tracks.getId());
-        return item;
-    }
+
 }
 
 

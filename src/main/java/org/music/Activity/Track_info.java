@@ -85,6 +85,7 @@ public class Track_info extends Border_Radius {
         info_track_scroll.setBorder(null);
         info_track_scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         info_track_scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        info_track_scroll.getVerticalScrollBar().setUnitIncrement(16);
         add(info_track_scroll, BorderLayout.CENTER);
 
         Rounded_Label img_cover = new Rounded_Label(new ImageIcon(),30);
@@ -116,7 +117,7 @@ public class Track_info extends Border_Radius {
         Name_song.setForeground(Color.WHITE);
         Name_song.setBorder(new EmptyBorder(5,0,0,0));
         JLabel Artist_song = new JLabel();
-        Artist_song.setText(mongo.get_Artist(i));
+        Artist_song.setText(mongo.File_name(i));
         Artist_song.setFont(new Font("Serif", Font.PLAIN, 16));
         Artist_song.setForeground(Color.LIGHT_GRAY );
         Song_info.add(Name_song, BorderLayout.NORTH);

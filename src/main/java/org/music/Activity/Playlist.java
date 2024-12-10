@@ -41,6 +41,7 @@ public class Playlist extends Border_Radius {
     Boolean is_edit = false;
     CardLayout center_pl = new CardLayout();
     JPanel pl_center = new JPanel(center_pl);
+    int width = 860;
 
     Rounded_Label img = new Rounded_Label(new ImageIcon(), 30);
     JLabel title = new JLabel();
@@ -125,13 +126,14 @@ public class Playlist extends Border_Radius {
                         window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
                     scrollPane.setPreferredSize(new Dimension(1150,900));
                     div_btn.setPreferredSize(new Dimension(1150,60));
+                    width = 1150;
                     set_wit(700);
                     refresh_zehn();
 
                 } else if (window.getExtendedState() == JFrame.NORMAL) {
-                    System.out.println(window.getWidth());
                     scrollPane.setPreferredSize(new Dimension(600,440));
                     div_btn.setPreferredSize(new Dimension(600,60));
+                    width = window.getWidth() -250;
                     set_wit(250);
                     refresh_zehn();
                 }
@@ -596,7 +598,7 @@ public class Playlist extends Border_Radius {
             }
             @Override
             public void mouseClicked(MouseEvent e) {
-                home.reload_Artist(i.getArtist_id());
+                home.reload_Artist(i.getArtist_id(), wit == 1150 ? 1150 : width);
             }
         });
 
