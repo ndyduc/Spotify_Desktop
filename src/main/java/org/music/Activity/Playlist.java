@@ -577,12 +577,28 @@ public class Playlist extends Border_Radius {
         JLabel name_track = new JLabel(i.getTitle());
         name_track.setForeground(Color.WHITE);
         name_track.setFont(new Font("Serif", Font.PLAIN, 17));
+
         JLabel artist_track = new JLabel();
         artist_track.setText(i.getArtist());
         artist_track.setForeground(Color.GRAY);
         artist_track.setFont(new Font("Serif", Font.PLAIN, 15));
         jkl.add(name_track, BorderLayout.NORTH);
         jkl.add(artist_track, BorderLayout.SOUTH);
+
+        artist_track.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                artist_track.setForeground(new Color(101, 145, 126));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                artist_track.setForeground(Color.GRAY);
+            }
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.reload_Artist(i.getArtist_id());
+            }
+        });
 
         JLabel albu = new JLabel(i.getAlbum());
         albu.setForeground(Color.GRAY);

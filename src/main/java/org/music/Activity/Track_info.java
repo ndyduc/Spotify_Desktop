@@ -3,6 +3,7 @@ package org.music.Activity;
 import org.music.Components.Border_Radius;
 import org.music.Components.RoundedPanel;
 import org.music.Components.Rounded_Label;
+import org.music.MongoDB;
 import org.music.getAPI.Soundcloud;
 import org.music.models.Search_Tracks.Collection;
 import org.music.models.Track;
@@ -23,6 +24,7 @@ import static org.music.Activity.Home.loadIcon;
 public class Track_info extends Border_Radius {
     public Artist_Lis listener;
     Soundcloud sc = new Soundcloud();
+    MongoDB mongo = new MongoDB();
     public Track_info(int radius, Collection i, AtomicBoolean showqueue, JButton Queue, AtomicBoolean showartist, JButton Artist){
         super(radius);
         setLayout(new BorderLayout());
@@ -114,10 +116,7 @@ public class Track_info extends Border_Radius {
         Name_song.setForeground(Color.WHITE);
         Name_song.setBorder(new EmptyBorder(5,0,0,0));
         JLabel Artist_song = new JLabel();
-        String nam = (i.getPublisher_metadata() != null && i.getPublisher_metadata().getArtist() != null)
-                ? i.getPublisher_metadata().getArtist()
-                : i.getUser().getUsername();
-        Artist_song.setText(nam);
+        Artist_song.setText(mongo.get_Artist(i));
         Artist_song.setFont(new Font("Serif", Font.PLAIN, 16));
         Artist_song.setForeground(Color.LIGHT_GRAY );
         Song_info.add(Name_song, BorderLayout.NORTH);

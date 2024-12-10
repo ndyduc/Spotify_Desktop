@@ -95,13 +95,15 @@ public class Home implements Queue_Lis, Artist_Lis{
         s_all = new Search_all(30,"cigarettes", stream, window, this);
         List<Playlists> pla = mongo.get_Playlists("_ndyduc_");
         playlist = new Playlist(30, pla.getFirst(), stream, window, this);
-        Collection user = sc.get_user_by_id(1);
-        artist = new Artist(30, user, this);
+        Collection user = sc.getBestUser("Cigarettes after sex");
+        artist = new Artist(30, user, window, this);
 
         main_center.add(house,"house");
         main_center.add(s_all, "search_all");
         main_center.add(playlist,"playlist");
         main_center.add(artist,"artist");
+
+        center_home.show(main_center, "artist");
 
         window.add(main_center, BorderLayout.CENTER);
 
@@ -314,6 +316,13 @@ public class Home implements Queue_Lis, Artist_Lis{
         txtSearch.setBackground(Color.decode("#1a1a1a"));
         txtSearch.setOpaque(false);
         txtSearch.setCaretColor(Color.WHITE);
+
+        search.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                center_home.show(main_center, "search_all");
+            }
+        });
 
         txtSearch.addFocusListener(new FocusAdapter() {
             @Override
@@ -833,6 +842,12 @@ public class Home implements Queue_Lis, Artist_Lis{
         }
 
         return popupMenu;
+    }
+
+    public void reload_Artist(int id){
+        Collection user = sc.get_user_by_id(id);
+        artist.refresh_neun(user);
+        center_home.show(main_center, "artist");
     }
 
 }

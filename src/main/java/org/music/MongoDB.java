@@ -14,6 +14,7 @@ import org.music.models.DB.Playlists;
 import org.music.models.DB.Queue_Tracks;
 import org.music.models.DB.Users;
 import org.music.models.Queue_Item;
+import org.music.models.Search_Tracks.Collection;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,9 +29,6 @@ public class MongoDB {
         try {
             MongoClient mongoClient = MongoClients.create(uri);
             database = mongoClient.getDatabase("ndyduc");
-
-            System.out.println("Connected to database hey hey !");
-//            mongoClient.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -38,7 +36,7 @@ public class MongoDB {
 
     public String Get_Client_ID() {
         try {
-            MongoCollection<Document> collection = database.getCollection("Soundcloud_API_client_id");
+            MongoCollection<Document> collection = database.getCollection("SoundCloud_API_client_id");
 
             Document doc = collection.find().first();
             if (doc != null) {
@@ -182,6 +180,7 @@ public class MongoDB {
                 item.setFileName(doc.getString("fileName"));
                 item.setLink(doc.getString("link"));
                 item.setWhere(doc.getString("where"));
+                item.setArtist_id(doc.getInteger("artist_id"));
 
                 songs.add(item);
             }
@@ -269,5 +268,12 @@ public class MongoDB {
             e.printStackTrace();
             System.out.println("Error removing artist from love list: " + e.getMessage());
         }
+    }
+
+    public String get_Artist(Collection i){
+        String nam = (i.getPublisher_metadata() != null && i.getPublisher_metadata().getArtist() != null)
+                ? i.getPublisher_metadata().getArtist()
+                : i.getUser().getUsername();
+        return nam;
     }
 }

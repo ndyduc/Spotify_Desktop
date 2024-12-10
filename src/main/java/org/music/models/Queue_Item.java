@@ -10,6 +10,15 @@ public class Queue_Item {
     private String mongoID;
     private int id;
     private String where;
+    private int artist_id;
+
+    public int getArtist_id() {
+        return artist_id;
+    }
+
+    public void setArtist_id(int artist_id) {
+        this.artist_id = artist_id;
+    }
 
     public String getMongoID() {
         return mongoID;
