@@ -1,28 +1,34 @@
 package org.music.Activity;
 
-import jdk.jfr.Description;
 import org.music.Components.Border_Radius;
-import org.music.Components.RoundedPanel;
 import org.music.Components.Rounded_Label;
 import org.music.Func.Stream;
 import org.music.MongoDB;
 import org.music.getAPI.Soundcloud;
 import org.music.models.DB.Playlists;
+import org.music.models.DB.Queue_Tracks;
 import org.music.models.Queue_Item;
-import org.music.models.Search_Tracks.Collection;
-import org.music.models.Songs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.lang.model.element.Name;
+import javax.imageio.ImageIO;
+import java.util.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static org.music.Activity.Home.createButton;
@@ -32,9 +38,12 @@ public class Playlist extends Border_Radius {
     private static final Logger log = LoggerFactory.getLogger(Playlist.class);
     Soundcloud sc = new Soundcloud();
     MongoDB mongo = new MongoDB();
-    int wit = 250;
+    Frame window;
     Stream stream;
     Playlists pl;
+    Boolean full = false;
+    Boolean chance_ing = false;
+
     Home home ;
     JPanel lmao = new JPanel(new FlowLayout(FlowLayout.LEFT,0,0));
     Boolean isplaying = false;
@@ -47,7 +56,6 @@ public class Playlist extends Border_Radius {
     JLabel title = new JLabel();
     JTextArea txt = new JTextArea();
     Rounded_Label img_e = new Rounded_Label(new ImageIcon(), 30);
-    JTextField img_edit = new JTextField();
     JTextField name_edit = new JTextField();
     JTextArea txtedit = new JTextArea();
 
@@ -70,19 +78,19 @@ public class Playlist extends Border_Radius {
         this.home  = home;
         this.stream = stream;
         this.pl = playlist;
+        this.window = window;
         if (pl.getIs_shuffle())
             shuffle = home.createButton("src/main/resources/pngs/arrows-shuffle-green.png",30,30);
         else
             shuffle = home.createButton("src/main/resources/pngs/arrows-shuffle.png",30,30);
 
         setBackground(new Color(101, 145, 126));
+        setBorder(new EmptyBorder(10,0,0,0));
 
         JPanel header = gethead(pl);
         center_pl.show(pl_center, "show");
 
-        Border_Radius body = get_main();
-
-//        lmao.setBackground(new Color(101, 145, 126));
+        JPanel body = get_main();
         lmao.add(header);
 
         Border_Radius flo = new Border_Radius(30);
@@ -91,15 +99,15 @@ public class Playlist extends Border_Radius {
         flo.add(lmao, BorderLayout.NORTH);
         flo.add(body, BorderLayout.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(flo);
-        scrollPane.setPreferredSize(new Dimension(600,440));
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
-        scrollPane.setBorder(null);
+        JScrollPane scroll = new JScrollPane(flo);
+        scroll.setPreferredSize(new Dimension((int)(window.getWidth()*0.7), (int)(window.getHeight()-160)));
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+        scroll.setBorder(null);
 
-        add(scrollPane, BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
 
         trash.addActionListener(e -> {
             int result = JOptionPane.showConfirmDialog(
@@ -124,55 +132,55 @@ public class Playlist extends Border_Radius {
                 Dimension windowSize = window.getSize();
                 if (windowSize.width == screenSize.width && windowSize.height == screenSize.height |
                         window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
-                    scrollPane.setPreferredSize(new Dimension(1150,900));
-                    div_btn.setPreferredSize(new Dimension(1150,60));
+                    scroll.setPreferredSize(new Dimension(1170,850));
+                    div_btn.setPreferredSize(new Dimension(1170,60));
+                    cxz.setPreferredSize(new Dimension(1150,20));
+                    full = true;
                     width = 1150;
-                    set_wit(700);
                     refresh_zehn();
 
                 } else if (window.getExtendedState() == JFrame.NORMAL) {
-                    scrollPane.setPreferredSize(new Dimension(600,440));
-                    div_btn.setPreferredSize(new Dimension(600,60));
-                    width = window.getWidth() -250;
-                    set_wit(250);
+                    scroll.setPreferredSize(new Dimension(window.getWidth()-250,440));
+                    div_btn.setPreferredSize(new Dimension(window.getWidth()-250,60));
+                    cxz.setPreferredSize(new Dimension(580,20));
+                    full = false;
+                    width = 860;
                     refresh_zehn();
                 }
-                scrollPane.revalidate();
-                scrollPane.repaint();
+                scroll.revalidate();
+                scroll.repaint();
                 zehn.revalidate();
                 zehn.repaint();
                 div_btn.revalidate();
                 div_btn.repaint();
                 cxz.revalidate();
                 cxz.repaint();
-
             }
         });
     }
 
-    private void set_wit(int wit){this.wit = wit;}
-
     public void reload_pl(Playlists i){
         this.pl = i;
+        chance_ing = false;
         new Thread(() -> {
             try {
-                String a = sc.IMG500x500(i.getImage());
-                if (a != null && !a.isEmpty()) {
-                    URI uri = new URI(a);
-                    ImageIcon imageIcon = new ImageIcon(uri.toURL());
-                    SwingUtilities.invokeLater(() -> {
-                        img.setIcon(imageIcon);
-                        img_e.setIcon(imageIcon);
-                    });
-                } else {
-                    SwingUtilities.invokeLater(() -> {
-                        img.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));
-                        img_e.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));
-                    });
-                }
+                String a = i.getImage();
+                ImageIcon imageIcon;
 
-            } catch (URISyntaxException | MalformedURLException e) {
-//                e.printStackTrace();
+                if (a != null && !a.isEmpty()) {
+                    BufferedImage img = ImageIO.read(new File(a));
+                    imageIcon = new ImageIcon(img);
+                } else {
+                    String fallbackImagePath = "src/main/resources/pngs/me.png";
+                    BufferedImage img = ImageIO.read(new File(fallbackImagePath));
+                    imageIcon = new ImageIcon(img);
+                }
+                SwingUtilities.invokeLater(() -> {
+                    img.setIcon(imageIcon);
+                    img_e.setIcon(imageIcon);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
         title.setText(i.getName());
@@ -199,23 +207,15 @@ public class Playlist extends Border_Radius {
 
         new Thread(() -> {
             try {
-                String a = sc.IMG500x500(playlist.getImage());
-                if (a != null && !a.isEmpty()) {
-                    URI uri = new URI(a);
-                    ImageIcon imageIcon = new ImageIcon(uri.toURL());
-                    SwingUtilities.invokeLater(() -> {
-                        img.setIcon(imageIcon);
-                    });
-                } else {
-                    SwingUtilities.invokeLater(() -> {
-                        img.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));
-                    });
-                }
-
-            } catch (URISyntaxException | MalformedURLException e) {
+                String a = playlist.getImage();
+                ImageIcon imageIcon = new ImageIcon(a);
+                SwingUtilities.invokeLater(() -> { img.setIcon(imageIcon); });
+            } catch (NullPointerException e) {
 //                e.printStackTrace();
+                SwingUtilities.invokeLater(() -> { img.setIcon(new ImageIcon("src/main/resources/pngs/me.png")); });
             }
         }).start();
+
         head_main.add(img);
 
         JPanel right_main = new JPanel(new BorderLayout(0,10));
@@ -272,92 +272,65 @@ public class Playlist extends Border_Radius {
 
         new Thread(() -> {
             try {
-                String a = sc.IMG500x500(playlist.getImage());
-                if (a != null && !a.isEmpty()) {
-                    URI uri = new URI(a);
-                    ImageIcon imageIcon = new ImageIcon(uri.toURL());
-                    SwingUtilities.invokeLater(() -> {
-                        img_e.setIcon(imageIcon);
-                    });
-                } else {
-                    SwingUtilities.invokeLater(() -> {
-                        img_e.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));
-                    });
-                }
-
-            } catch (URISyntaxException | MalformedURLException e) {
+                String a = playlist.getImage();
+                ImageIcon imageIcon = new ImageIcon(a);
+                SwingUtilities.invokeLater(() -> { img_e.setIcon(imageIcon); });
+            } catch (NullPointerException e) {
 //                e.printStackTrace();
+                    SwingUtilities.invokeLater(() -> { img.setIcon(new ImageIcon("src/main/resources/pngs/me.png")); });
             }
         }).start();
         head_main.add(img_e);
-
-        JLabel linkimg = new JLabel("Enter link to picture");
-        linkimg.setForeground(new Color(253, 124, 141));
-        linkimg.setFont(new Font("Serif", Font.BOLD , 16));
-
-        img_edit.setMaximumSize(new Dimension(340,20));
-        img_edit.setForeground(new Color(253, 124, 141));
-        img_edit.setBackground(new Color(101, 145, 126));
-        if(playlist.getImage() != null) img_edit.setText(playlist.getImage());
-        else img_edit.setText("Add link Image here !");
-        img_edit.setBorder(new EmptyBorder(5,5,5,20));
-        img_edit.addFocusListener(new FocusListener() {
+        final String[] path = new String[1];
+        img_e.addMouseListener(new MouseAdapter() {
             @Override
-            public void focusGained(FocusEvent e) {
-                img_edit.setBackground(new Color(253, 124, 141));
-                img_edit.setForeground(Color.WHITE);
-            }
+            public void mouseClicked(MouseEvent e) {
+                try {
+                    String script = "set chosenFile to choose file with prompt \"Select an image file\" of type {\"public.image\"}\n" +
+                                    "return POSIX path of chosenFile";
 
-            @Override
-            public void focusLost(FocusEvent e) {
-                img_edit.setBackground(new Color(101,145, 126));
-                img_edit.setForeground(Color.WHITE);
+                    Process process = Runtime.getRuntime().exec(new String[]{"osascript", "-e", script});
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    String imagePath = reader.readLine();
 
-                new Thread(() -> {
-                    try {
-                        String a = sc.IMG500x500(img_edit.getText());
-                        if (a != null && !a.isEmpty()) {
-                            URI uri = new URI(a);
-                            ImageIcon imageIcon = new ImageIcon(uri.toURL());
-                            SwingUtilities.invokeLater(() -> {
-                                img_e.setIcon(imageIcon);
-                            });
-                        } else {
-                            SwingUtilities.invokeLater(() -> {
-                                img_e.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));
-                            });
-                        }
+                    if (imagePath != null) {
+                        String resourcesDir = "src/main/resources/pngs/";
+                        String extension = imagePath.substring(imagePath.lastIndexOf("."));
+                        path[0] = resourcesDir + pl.getId() + extension;
+                        File destFile = new File(path[0]);
+                        Files.copy(Paths.get(imagePath), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-                    } catch (URISyntaxException | MalformedURLException se) {
-//                e.printStackTrace();
+                        ImageIcon imageIcon = new ImageIcon(path[0]);
+                        Image img = imageIcon.getImage().getScaledInstance(
+                                img_e.getWidth(), img_e.getHeight(), Image.SCALE_SMOOTH);
+                        img_e.setIcon(new ImageIcon(img));
+                        chance_ing = true;
                     }
-                }).start();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
         });
 
 
-        name_edit.setMaximumSize(new Dimension(340,20));
-        name_edit.setBackground(new Color(101,145,126));
+        name_edit.setMaximumSize(new Dimension( 300,20));
         name_edit.setText(playlist.getName());
-        name_edit.setForeground(new Color(255, 182, 193));
         name_edit.setFont(new Font("Serif", Font.PLAIN , 16));
         name_edit.setBorder(new EmptyBorder(5,20,10,20));
         name_edit.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                name_edit.setBackground(new Color(253, 124, 141));
+                name_edit.setBackground(Color.decode("#3a3a3a"));
                 name_edit.setForeground(Color.WHITE);
             }
 
             @Override
             public void focusLost(FocusEvent e) {
-                name_edit.setBackground(new Color(101,145, 126));
-                name_edit.setForeground(Color.WHITE);
+                name_edit.setBackground(Color.white);
+                name_edit.setForeground(Color.BLACK);
             }
         });
 
-        txtedit.setBackground(new Color(0,0,0,0));
-        txtedit.setForeground(new Color(255, 182, 193));
         txtedit.setPreferredSize(new Dimension(340,100));
         txtedit.setMaximumSize(new Dimension(300,100));
         txtedit.setFont(new Font("Serif", Font.PLAIN , 16));
@@ -370,23 +343,21 @@ public class Playlist extends Border_Radius {
         txtedit.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                txtedit.setBackground(new Color(253, 124, 141));
+                txtedit.setBackground(Color.decode("#3a3a3a"));
                 txtedit.setForeground(Color.WHITE);
             }
 
             @Override
             public void focusLost(FocusEvent e) {
-                txtedit.setBackground(new Color(101,145, 126));
-                txtedit.setForeground(Color.WHITE);
+                txtedit.setBackground(Color.white);
+                txtedit.setForeground(Color.black);
             }
         });
 
-        JPanel div_edit = new JPanel(new FlowLayout(FlowLayout.LEFT,20,0));
-        div_edit.setBackground(new Color(0,0,0,0));
-
-        JPanel head_edit = new JPanel();
+        Border_Radius head_edit = new Border_Radius(30);
         head_edit.setLayout(new BoxLayout(head_edit, BoxLayout.Y_AXIS));
-        head_edit.setBackground(new Color(101, 145, 126));
+        head_edit.setBackground(Color.decode("#1a1a1a"));
+        head_edit.setBorder(new EmptyBorder(30,0,30,0));
 
 
         dots.addMouseListener(new MouseAdapter() {
@@ -405,13 +376,14 @@ public class Playlist extends Border_Radius {
                             pl.getOwner(),
                             txtedit.getText(),
                             pl.getIs_shuffle(),
-                            img_edit.getText(),
+                            path[0],
                             pl.getStatus(),
                             pl.getCreated_at(),
                             pl.getIs_pin(),
                             pl.getIs_dl()
                     );
-                    mongo.Update_Playlist(update);
+                    mongo.Update_Playlist(update, chance_ing);
+                    reload_pl(playlist);
                     title.setText(name_edit.getText());
                     txt.setText(txtedit.getText());
                     home.reload_playlist();
@@ -423,12 +395,11 @@ public class Playlist extends Border_Radius {
             }
         });
 
-        head_edit.add(linkimg);
-        head_edit.add(img_edit);
         head_edit.add(name_edit);
         head_edit.add(txtedit);
-        JPanel trashPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        trashPanel.setBackground(new Color(101, 145, 126));
+        Border_Radius trashPanel = new Border_Radius(30);
+        trashPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        trashPanel.setBackground(Color.decode("#1a1a1a"));
         trashPanel.add(trash);
         head_edit.add(trashPanel);
 
@@ -449,17 +420,16 @@ public class Playlist extends Border_Radius {
         return header;
     }
 
-    private Border_Radius get_main(){
-        Border_Radius body = new Border_Radius(30);
+    private JPanel get_main(){
+        JPanel body = new JPanel(new BorderLayout());
         body.setBackground(Color.decode("#1a1a1a"));
-        body.setLayout(new BorderLayout());
         body.setBorder(new EmptyBorder(10,10,10,10));
 
         get_head();
 
         cxz.setLayout(new BorderLayout()); // chuyen sang flow
         cxz.setBackground(Color.decode("#1a1a1a"));
-        cxz.setPreferredSize(new Dimension(600, 20));
+        cxz.setPreferredSize(new Dimension(580, 20));
         cxz.add(head, BorderLayout.WEST);
 
         body.add(cxz, BorderLayout.NORTH);
@@ -498,14 +468,12 @@ public class Playlist extends Border_Radius {
         zehn.removeAll();
         zehn.setBackground(Color.decode("#1a1a1a"));
 
-        if (wit == 250) {
-            cxz.setPreferredSize(new Dimension(600, 20));
-            head.setPreferredSize(new Dimension(600, 20));
-            alb.setPreferredSize(new Dimension(230, 30));
+        if (width == 860) {
+            alb.setPreferredSize(new Dimension(250, 30));
+            head.setPreferredSize(new Dimension(600,20));
         } else {
-            cxz.setPreferredSize(new Dimension(1150, 20));
-            head.setPreferredSize(new Dimension(1150, 20));
-            alb.setPreferredSize(new Dimension(320, 30));
+            head.setPreferredSize(new Dimension(1150,20));
+            alb.setPreferredSize(new Dimension(540, 30));
         }
 
         SwingWorker<java.util.List<JPanel>, JPanel> worker = new SwingWorker<>() {
@@ -516,7 +484,7 @@ public class Playlist extends Border_Radius {
                 int z = 1;
 
                 for (Queue_Item track : tracks) {
-                    JPanel songItem = add_song_item(track, z, wit); // Tạo item trong luồng nền
+                    JPanel songItem = get_item(track, z, width); // Tạo item trong luồng nền
                     panels.add(songItem); // Lưu lại để thêm vào giao diện sau
                     z++;
                 }
@@ -549,102 +517,113 @@ public class Playlist extends Border_Radius {
         worker.execute();
     }
 
-    private JPanel add_song_item(Queue_Item i, int number, int wit){
-        Border_Radius a = new Border_Radius(15);
-        a.setBackground(Color.decode("#1a1a1a"));
-        a.setBorder(new EmptyBorder(5,5,5,30));
-        a.setLayout(new BorderLayout(10,5));
-        a.setPreferredSize(new Dimension(600, 55));
-
-        Rounded_Label img_track = new Rounded_Label(new ImageIcon(),10);
-        img_track.setPreferredSize(new Dimension(45,45));
-
-        new Thread(() ->{
-            try {
-                URI uri = new URI(sc.IMG500x500(i.getImgCover()));
-                ImageIcon imageIcon = new ImageIcon(uri.toURL());
-                SwingUtilities.invokeLater(() -> {
-                    img_track.setIcon(imageIcon);
-                });
-            }  catch (URISyntaxException | MalformedURLException | NullPointerException e) {
-                SwingUtilities.invokeLater(() -> {
-                    img_track.setIcon(new ImageIcon("src/main/resources/pngs/x.png"));
-                });
-            }
-        }).start();
-
-        JPanel jkl = new JPanel(new BorderLayout());
-        jkl.setBackground(new Color(0, 0, 0, 0));
-        jkl.setPreferredSize(new Dimension(wit,45));
-        JLabel name_track = new JLabel(i.getTitle());
-        name_track.setForeground(Color.WHITE);
-        name_track.setFont(new Font("Serif", Font.PLAIN, 17));
-
-        JLabel artist_track = new JLabel();
-        artist_track.setText(i.getArtist());
-        artist_track.setForeground(Color.GRAY);
-        artist_track.setFont(new Font("Serif", Font.PLAIN, 15));
-        jkl.add(name_track, BorderLayout.NORTH);
-        jkl.add(artist_track, BorderLayout.SOUTH);
-
-        artist_track.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                artist_track.setForeground(new Color(101, 145, 126));
-            }
-            @Override
-            public void mouseExited(MouseEvent e) {
-                artist_track.setForeground(Color.GRAY);
-            }
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                home.reload_Artist(i.getArtist_id(), wit == 1150 ? 1150 : width);
-            }
-        });
-
-        JLabel albu = new JLabel(i.getAlbum());
-        albu.setForeground(Color.GRAY);
-        albu.setFont(new Font("Serif", Font.PLAIN, 15));
-
-        JButton add = createButton("src/main/resources/pngs/dots.png",25,25);
-        JPopupMenu pop = home.popup_Album(i, add, pl);
-        home.createPopup(add, pop);
-
-        JPanel img_name = new JPanel(new BorderLayout(10,0));
-        img_name.setBackground(new Color(0,0,0,0));
-        img_name.add(img_track, BorderLayout.WEST);
-        img_name.add(jkl, BorderLayout.EAST);
-
-        JPanel album_btn = new JPanel(new BorderLayout(10,0));
-        album_btn.setBackground(Color.decode("#1a1a1a"));
-        album_btn.add(albu, BorderLayout.WEST);
-        album_btn.add(add, BorderLayout.EAST);
-        if(wit == 250) {
-            albu.setPreferredSize(new Dimension(180,45));
-            album_btn.setPreferredSize(new Dimension(200,45));
-        } else {
-            albu.setPreferredSize(new Dimension(250,45));
-            album_btn.setPreferredSize(new Dimension(280,45));
-        }
-
-        JPanel cent = new JPanel(new BorderLayout(20,0));
-        cent.setBackground(new Color(0,0,0,0));
-        cent.add(img_name, BorderLayout.WEST);
-        cent.add(album_btn, BorderLayout.EAST);
+    private Border_Radius get_item(Queue_Item track, int number, int width) {
+        Border_Radius bor  = new Border_Radius(30);
+        bor.setBackground(Color.decode("#1a1a1a"));
+        bor.setLayout(new FlowLayout(FlowLayout.LEFT));
 
         JLabel nu = new JLabel(String.valueOf(number));
         nu.setPreferredSize(new Dimension(30,45));
         nu.setForeground(Color.white);
         nu.setFont(new Font("Serif", Font.PLAIN, 16));
+        nu.setBorder(new EmptyBorder(0,10,0,0));
 
-        a.add(nu, BorderLayout.WEST);
-        a.add(cent, BorderLayout.CENTER);
+        bor.add(nu);
 
-        a.addMouseListener(new MouseAdapter() {
+        Rounded_Label img = new Rounded_Label(new ImageIcon(), 30);
+        img.setPreferredSize(new Dimension(40,40));
+        img.setBorder(new EmptyBorder(5,5,5,5));
+
+        bor.add(img);
+
+        new Thread(() -> {
+            try {
+                URI uri = new URI(sc.IMG500x500(track.getImgCover()));
+                ImageIcon image = new ImageIcon(uri.toURL());
+                SwingUtilities.invokeLater(() -> img.setIcon(image));
+            } catch (URISyntaxException | MalformedURLException | NullPointerException e) {
+                SwingUtilities.invokeLater(() -> { img.setIcon(new ImageIcon("src/main/resources/pngs/me.png")); });
+            }
+        }).start();
+
+        Border_Radius info = new Border_Radius(30);
+        info.setBackground(new Color(0,0,0,0));
+        info.setLayout(new BorderLayout(10,5));
+        info.setBorder(new EmptyBorder(0,15,0,0));
+
+        JLabel name = new JLabel(track.getTitle());
+        name.setFont(new Font("Serif", Font.PLAIN, 14));
+        name.setForeground(Color.white);
+
+        Border_Radius clue = new Border_Radius(30);
+        clue.setBackground(new Color(0,0,0,0));
+        clue.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        JButton dl = createButton("src/main/resources/pngs/circle-arrow-down-green.png", 25, 25);
+        if(mongo.checkFile(track.getFileName())) clue.add(dl);
+
+        JLabel ar = new JLabel(track.getArtist());
+        ar.setFont(new Font("Serif", Font.PLAIN, 12));
+        ar.setForeground(Color.gray);
+        clue.add(ar);
+
+        ar.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                a.setBackground(Color.decode("#2a2a2a"));
-                album_btn.setBackground(Color.decode("#2a2a2a"));
+                ar.setForeground(new Color(101, 145, 126));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                ar.setForeground(Color.GRAY);
+            }
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.reload_Artist(track.getArtist_id(), width == 1150 ? 1150 : 860);
+            }
+        });
+
+        info.add(name, BorderLayout.NORTH);
+        info.add(clue, BorderLayout.SOUTH);
+        bor.add(info);
+
+        JLabel album = new JLabel(track.getAlbum());
+        album.setFont(new Font("Serif", Font.PLAIN, 12));
+        album.setForeground(Color.GRAY);
+        album.setPreferredSize(new Dimension((int)((width-250)*0.2),50));
+        bor.add(album);
+
+
+        JLabel genre = new JLabel(track.getGenre());
+        genre.setFont(new Font("Serif", Font.PLAIN, 12));
+        genre.setForeground(Color.GRAY);
+        genre.setPreferredSize(new Dimension((int)(width*0.2),50));
+
+        if(full) {
+            info.setPreferredSize(new Dimension((int) (width*0.45), 50));
+            bor.add(genre);
+        }else {
+            info.setPreferredSize(new Dimension((int)(width*0.3),50));
+            name.setPreferredSize(new Dimension((int)(width*0.3),20));
+        }
+
+
+        JLabel duration = new JLabel(mongo.get_duration(track.getDuration()));
+        duration.setFont(new Font("Serif", Font.PLAIN, 12));
+        duration.setForeground(Color.GRAY);
+        duration.setPreferredSize(new Dimension((int)(width*0.05),50));
+        bor.add(duration);
+
+        JButton more = createButton("src/main/resources/pngs/dots.png", 30, 30);
+
+        bor.add(more);
+
+        JPopupMenu pop = home.popup_Album(track, more );
+        home.createPopup(more, pop);
+
+        bor.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                bor.setBackground(Color.decode("#2a2a2a"));
                 nu.setIcon(loadIcon("src/main/resources/pngs/player-play.png", 20, 20)); // Thay đổi icon của `nu`
                 nu.setText("");
                 nu.repaint();
@@ -652,23 +631,37 @@ public class Playlist extends Border_Radius {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                a.setBackground(Color.decode("#1a1a1a"));
-                album_btn.setBackground(Color.decode("#1a1a1a"));
+                bor.setBackground(Color.decode("#1a1a1a"));
                 nu.setIcon(null);
                 nu.setText(String.valueOf(number));
             }
 
             @Override
-            public void mousePressed(MouseEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 isplaying = true;
                 Playbtn.setIcon(home.loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
-                stream.addToFront(i);
-                home.setCurrentSong(i);
+
+                home.clearQueue();
+                List<Queue_Item> queue = mongo.getSongsByWhere(track.getWhere());
+                for (Queue_Item item : queue) {
+                    home.addToQueue(item);
+                    Queue<Queue_Item>  que = home.getQueueDL();
+                    for (Queue_Item i : que) {
+                        System.out.println("Title: " + i.getTitle() +
+                                ", Artist: " + i.getArtist() +
+                                ", File Name: " + i.getFileName());
+                    }
+
+//                    mongo.Insert_into_queue(new Queue_Tracks(null, "_ndyduc_", item.getTitle(), item.getArtist(), item.getFileName()));
+                }
+                home.addToFront(track);
+                home.setCurrentSong(track);
                 home.Play_track();
             }
         });
 
-        return a;
+        return bor;
     }
+
 
 }

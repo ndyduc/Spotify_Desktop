@@ -59,6 +59,7 @@ public class Search_all extends Border_Radius {
     JPanel funf = new JPanel(new GridBagLayout());
     Songs sogs = sc.get_n_Tracks(this.key, 100);
     Home home;
+    int width;
 
     public Search_all(int radius, String keyword, Stream stream, JFrame window, Home home) {
         super(radius);
@@ -155,11 +156,13 @@ public class Search_all extends Border_Radius {
                         window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
                     head_left.setPreferredSize(new Dimension(550, 310));
                     head_right.setPreferredSize(new Dimension(600,310));
+                    width = 1150;
                     refresh_drei(700, sogs);
 
                 } else if (window.getExtendedState() == JFrame.NORMAL) {
                     head_left.setPreferredSize(new Dimension(300, 310));
                     head_right.setPreferredSize(new Dimension(300,310));
+                    width = 860;
                     refresh_drei(250, sogs);
                 }
                 head_left.revalidate();
@@ -304,6 +307,13 @@ public class Search_all extends Border_Radius {
 
         head_left.add(l_north_div, BorderLayout.NORTH);
         head_left.add(div_artist, BorderLayout.SOUTH);
+
+        div_artist.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.reload_Artist(best_user.getId(), width == 1150 ? 1150 : 860);
+            }
+        });
 
         new Thread(() -> {
             try {
@@ -937,12 +947,10 @@ public class Search_all extends Border_Radius {
     private void Track_Stream(Stream stream, int id){
         org.music.models.Search_Tracks.Collection track = sc.get_track_by_id(id);
         Queue_Item qi = home.cv_track_to_queuei(track);
-        stream.addToFront(qi);
+        home.addToFront(qi);
         home.setCurrentSong(qi);
         home.Play_track();
     }
-
-
 }
 
 

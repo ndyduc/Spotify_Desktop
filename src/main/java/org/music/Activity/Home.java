@@ -14,6 +14,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Area;
+import java.util.LinkedList;
 import java.util.List;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Rectangle2D;
@@ -24,6 +25,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Home implements Queue_Lis, Artist_Lis{
     JFrame window = new JFrame("_ndyduc_");
@@ -72,12 +75,10 @@ public class Home implements Queue_Lis, Artist_Lis{
 
     private Timer searchTimer = new Timer(1000, null);
 
-
     public Home() {
         String name_track = "K. Cigarettes";
         stream = new Stream();
         item = sc.getQueue_Item(name_track);
-        stream.showQueue();
 
         window.setSize(860, 600);
         window.setMinimumSize(new Dimension(860, 600));
@@ -91,7 +92,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         window.add(lib, BorderLayout.WEST);
 
         main_center.setBackground(Color.BLACK);
-        house = new House(30, "abc");
+        house = new House(30, this, window);
         s_all = new Search_all(30,"cigarettes", stream, window, this);
         List<Playlists> pla = mongo.get_Playlists("_ndyduc_");
         playlist = new Playlist(30, pla.getFirst(), stream, window, this);
@@ -103,7 +104,6 @@ public class Home implements Queue_Lis, Artist_Lis{
         main_center.add(playlist,"playlist");
         main_center.add(artist,"artist");
 
-        center_home.show(main_center, "artist");
 
         window.add(main_center, BorderLayout.CENTER);
 
@@ -304,6 +304,14 @@ public class Home implements Queue_Lis, Artist_Lis{
         RoundedPanel mh1 = new RoundedPanel(40, Color.decode("#1a1a1a"), 5, 5);
         mh1.setPreferredSize(new Dimension(50, 50));
         JButton home = createButton("src/main/resources/pngs/home.png", 30, 30);
+
+        home.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                center_home.show(main_center, "house");
+            }
+        });
+
         mh1.add(home);
 
         RoundedPanel mh2 = new RoundedPanel(40, Color.decode("#1a1a1a"), 5, 0);
@@ -360,7 +368,7 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         home.addActionListener(e -> {
             txtSearch.setText("");
-            house = new House(30, "abc");
+            house = new House(30, this, window);
             center_home.show(main_center, "house");
         });
 
@@ -772,6 +780,9 @@ public class Home implements Queue_Lis, Artist_Lis{
                 ne.setFileName(i.getTitle()+" - "+nam);
                 ne.setLink(i.getPermalink_url());
                 ne.setWhere(playlist.getId());
+                ne.setArtist_id(i.getUser_id());
+                ne.setDuration(i.getDuration());
+                ne.setGenre(i.getGenre());
 
                 if (mongo.isSongExists(i.getPermalink_url(), playlist.getId())) JOptionPane.showMessageDialog(null, "This song is already add to "+ playlist.getName());
                 else mongo.Insert_Song(ne);
@@ -782,7 +793,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         return popupMenu;
     }
 
-    public JPopupMenu popup_Album(Queue_Item i, JButton button, Playlists playlists) {
+    public JPopupMenu popup_Album(Queue_Item i, JButton button) {
         JPopupMenu popupMenu = new JPopupMenu();
         popupMenu.setBackground(Color.decode("#1a1a1a"));
         popupMenu.setForeground(Color.WHITE);
@@ -862,6 +873,89 @@ public class Home implements Queue_Lis, Artist_Lis{
         item.setId(tracks.getId());
         return item;
     }
+
+    public void refresh_House(){
+        house.refesh_playlists();
+        house.refesh_artist();
+    }
+
+    public void addToQueue(Queue_Item item) {
+        QueueDL.offer(item);
+        new Thread(() ->{
+            DLFile(item.getLink(), item.getFileName());
+        });
+    }
+    public Queue_Item peekQueue() {
+        return QueueDL.peek();
+    }  // Lấy phần tử đầu nhưng không xóa
+    public Queue_Item pollFromQueue() {
+        return QueueDL.poll();
+    } // Lấy và xóa phần tử đầu
+    public boolean isQueueEmpty() {
+        return QueueDL.isEmpty();
+    }
+    public void addToFront(Queue_Item item) {
+        ((LinkedList<Queue_Item>) QueueDL).addFirst(item);
+        new Thread(() ->{
+            DLFile(item.getLink(), item.getFileName());
+        });
+    }
+    public java.util.Queue<Queue_Item> getQueueDL() {
+        return QueueDL;
+    }
+    public void clearQueue() {
+        for (Queue_Item song : QueueDL) {
+            File file = new File(DIRECTORY + "/" + song.getFileName());
+            if (file.exists()) {
+                file.delete();
+            }
+        }
+        QueueDL.clear();
+        System.out.println("Hàng đợi đã được xóa.");
+    }
+
+
+    public void Delete_file(String filename) {
+        File file = new File(DIRECTORY + "/" + filename);
+        if (file.exists()) {
+            file.delete();
+        } else System.out.println("File doesn't exists !");
+    }
+
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
+    public static void DLFile(String link_file, String file_name) {
+        executor.submit(() -> {
+            try {
+                File directory = new File(DIRECTORY);
+                if (!directory.exists()) {
+                    directory.mkdirs();
+                }
+
+                File newFile = new File(DIRECTORY + "/" + file_name);
+                if (newFile.exists()) {
+                    System.out.println("File đã tồn tại: " + newFile.getAbsolutePath());
+                    return; // Dừng lại nếu file đã tồn tại
+                }
+
+                ProcessBuilder pb = new ProcessBuilder(
+                        "yt-dlp",
+                        "-f", "bestaudio[ext=mp3]", // Lựa chọn chỉ định dạng mp3
+                        "--output", newFile.getAbsolutePath(),
+                        link_file
+                );
+                Process process = pb.start();
+                process.waitFor();
+                System.out.println("Đã tải file: " + newFile.getAbsolutePath());
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Lỗi khi tải file: " + e.getMessage());
+            }
+        });
+    }
+
+    private final java.util.Queue<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
+    static final String DIRECTORY = "./mp3_queue";
 }
 
 

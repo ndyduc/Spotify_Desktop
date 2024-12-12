@@ -11,6 +11,24 @@ public class Queue_Item {
     private int id;
     private String where;
     private int artist_id;
+    private int duration;
+    private String genre;
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
 
     public int getArtist_id() {
         return artist_id;

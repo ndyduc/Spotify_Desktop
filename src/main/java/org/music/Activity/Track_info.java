@@ -5,6 +5,7 @@ import org.music.Components.RoundedPanel;
 import org.music.Components.Rounded_Label;
 import org.music.MongoDB;
 import org.music.getAPI.Soundcloud;
+import org.music.models.DB.Love_Artists;
 import org.music.models.Search_Tracks.Collection;
 import org.music.models.Track;
 
@@ -164,7 +165,16 @@ public class Track_info extends Border_Radius {
         info_artist.add(fl_artist, BorderLayout.SOUTH);
         div_artist.add(info_artist, BorderLayout.CENTER);
 
-
+        follow.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                mongo.Insert_Love_Artist(new Love_Artists(null, "_ndyduc_", i.getUser_id(), i.getUser().getUsername(), i.getUser().getAvatar_url()));
+                follow.setIcon(null);
+                follow.setText("Unfollow");
+                follow.setPreferredSize(new Dimension(100,40));
+                follow.setForeground(Color.WHITE);
+            }
+        });
 
         JTextArea bio_artist = new JTextArea();
         bio_artist.setForeground(Color.WHITE);
@@ -173,7 +183,7 @@ public class Track_info extends Border_Radius {
         bio_artist.setLineWrap(true); // Cho phép xuống dòng tự động
         bio_artist.setWrapStyleWord(true); // Xuống dòng theo từ (không cắt giữa từ)
         bio_artist.setEditable(false); // Chế độ chỉ đọc
-        bio_artist.setBackground(Color.decode("#1a1a1a"));
+        bio_artist.setBackground(Color.decode("#2a2a2a"));
         bio_artist.setBorder(null);
         div_artist.add(bio_artist, BorderLayout.SOUTH);
 

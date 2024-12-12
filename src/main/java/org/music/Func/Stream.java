@@ -43,102 +43,6 @@ public class Stream {
         return audioUrl;
     }
 
-    private static final int MAX_SIZE = 15;
-    private Queue<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
-    static final String DIRECTORY = "./mp3_queue";
-
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
-
-    public static void DLFile(String link_file, String file_name) {
-        executor.submit(() -> {
-            try {
-                File directory = new File(DIRECTORY);
-                if (!directory.exists()) {
-                    directory.mkdirs();
-                }
-
-                File newFile = new File(DIRECTORY + "/" + file_name);
-                if (newFile.exists()) {
-                    System.out.println("File đã tồn tại: " + newFile.getAbsolutePath());
-                    return; // Dừng lại nếu file đã tồn tại
-                }
-
-                // Chỉ tải về âm thanh mp3
-                ProcessBuilder pb = new ProcessBuilder(
-                        "yt-dlp",
-                        "-f", "bestaudio[ext=mp3]", // Lựa chọn chỉ định dạng mp3
-                        "--output", newFile.getAbsolutePath(),
-                        link_file
-                );
-                Process process = pb.start();
-                process.waitFor();
-                System.out.println("Đã tải file: " + newFile.getAbsolutePath());
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Lỗi khi tải file: " + e.getMessage());
-            }
-        });
-    }
-
-    public void addFiletoQueueDL(Queue_Item item) {
-        File file = new File(DIRECTORY + "/" + item.getFileName()+".mp3");
-        if (QueueDL.size() == MAX_SIZE) {
-            Queue_Item overfile = QueueDL.peek(); // lay k xoa
-            Delete_file(overfile.getFileName());
-            QueueDL.poll(); //lay+ xoa dau
-        }
-        DLFile(item.getLink(), item.getFileName());
-
-        QueueDL.offer(item); // them cuoi
-        System.out.println("Đã thêm file: " + file);
-    }
-
-    public void Delete_file(String filename) {
-        File file = new File(DIRECTORY + "/" + filename);
-        if (file.exists()) {
-            file.delete();
-        } else System.out.println("File doesn't exists !");
-    }
-
-    public void showQueue() {
-        System.out.println("Danh sách các file hiện tại trong hàng đợi:");
-        for (Queue_Item song : QueueDL) {
-            System.out.println(song);
-        }
-    }
-
-    public void addToQueue(Queue_Item item) {
-        QueueDL.offer(item);
-        DLFile(item.getLink(), item.getFileName());
-    }
-    public Queue_Item peekQueue() {
-        return QueueDL.peek();
-    }  // Lấy phần tử đầu nhưng không xóa
-    public Queue_Item pollFromQueue() {
-        return QueueDL.poll();
-    } // Lấy và xóa phần tử đầu
-    public boolean isQueueEmpty() {
-        return QueueDL.isEmpty();
-    }
-    public void addToFront(Queue_Item item) {
-        ((LinkedList<Queue_Item>) QueueDL).addFirst(item);
-        DLFile(item.getLink(), item.getFileName());
-    }
-    public Queue<Queue_Item> getQueueDL() {
-        return QueueDL;
-    }
-    public void clearQueue() {
-        for (Queue_Item song : QueueDL) {
-            File file = new File(DIRECTORY + "/" + song.getFileName());
-            if (file.exists()) {
-                file.delete();
-            }
-        }
-        QueueDL.clear();
-        System.out.println("Hàng đợi đã được xóa.");
-    }
-
 
     private long calculateBytesToSkip(long elapsedTime) {
         final int BITRATE = 128; // tính bằng kbps
@@ -206,7 +110,7 @@ public class Stream {
     }
 
     public void Play(String file_name) {
-        File file = new File(DIRECTORY + "/" + file_name);
+        File file = new File("./mp3_queue" + "/" + file_name);
         if (playerThread != null && playerThread.isAlive()) {stop();}
         playerThread = new Thread(() -> {
             try {
@@ -245,28 +149,6 @@ public class Stream {
             player.close();
         }
     }
-
-//    public void setSystemVolume(float volumePercentage) {
-//        try {
-//            Mixer.Info[] mixers = AudioSystem.getMixerInfo();
-//            for (Mixer.Info mixerInfo : mixers) {
-//                Mixer mixer = AudioSystem.getMixer(mixerInfo);
-//                if (mixer.isLineSupported(Port.Info.SPEAKER)) {
-//                    Port port = (Port) mixer.getLine(Port.Info.SPEAKER);
-//                    port.open();
-//                    if (port.isControlSupported(FloatControl.Type.VOLUME)) {
-//                        FloatControl volumeControl = (FloatControl) port.getControl(FloatControl.Type.VOLUME);
-//                        float volume = volumePercentage / 100.0f;
-//                        volumeControl.setValue(volume);
-//                    }
-//                    port.close();
-//                    break;
-//                }
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     public void setSystemVolume(float volumePercentage){
         int volume = Math.round(volumePercentage);

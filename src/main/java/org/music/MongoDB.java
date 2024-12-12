@@ -1,25 +1,23 @@
 package org.music;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
+import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
+import org.music.models.DB.Love_Artists;
 import org.music.models.DB.Playlists;
 import org.music.models.DB.Queue_Tracks;
 import org.music.models.DB.Users;
 import org.music.models.Queue_Item;
 import org.music.models.Search_Tracks.Collection;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.io.File;
+import java.util.*;
 
 public class MongoDB {
     MongoDatabase database;
@@ -49,6 +47,72 @@ public class MongoDB {
         return null; // Nếu không có tài liệu phù hợp, trả về null
     }
 
+    public void Insert_Love_Artist(Love_Artists loveArtist) {
+        try {
+            MongoCollection<Document> collection = database.getCollection("Love_Artists");
+            Bson filter = Filters.and(
+                    Filters.eq("Owner", "_ndyduc_"),
+                    Filters.eq("Id_artist", loveArtist.getArtist_id())
+            );
+
+            // Kiểm tra xem có tài liệu nào thỏa mãn bộ lọc không
+            Document existingDocument = collection.find(filter).first();
+
+            if (existingDocument == null) {
+                Document doc = new Document("_id", new ObjectId()) // ID tự động sinh
+                        .append("Id_artist", loveArtist.getArtist_id())
+                        .append("Owner", "_ndyduc_")
+                        .append("Name_Artist", loveArtist.getArtist_name())
+                        .append("Image", loveArtist.getArtist_img());
+
+                collection.insertOne(doc);
+            } else {
+                // Nếu có tài liệu trùng, không thực hiện insert
+                System.out.println("Love Artist with the same Owner and Id_artist already exists.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void Delete_Love_Artist(Love_Artists loveArtist) {
+        try {
+            MongoCollection<Document> collection = database.getCollection("Love_Artists");
+            String idAsString = loveArtist.getId();
+            ObjectId id = new ObjectId(idAsString);
+
+            Bson filter = Filters.eq("_id", id);
+            DeleteResult result = collection.deleteOne(filter);
+            if (result.getDeletedCount() > 0) System.out.println("Love Artist deleted successfully.");
+            else System.out.println("No document found with the given _id.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Love_Artists> Get_Love_Artists_By_Owner(String owner) {
+        List<Love_Artists> loveArtists = new ArrayList<>();
+        try {
+            MongoCollection<Document> collection = database.getCollection("Love_Artists");
+            Bson filter = Filters.eq("Owner", owner);
+
+            FindIterable<Document> results = collection.find(filter);
+            for (Document doc : results) {
+                Love_Artists artist = new Love_Artists(
+                        doc.getObjectId("_id").toHexString(),
+                        owner,
+                        doc.getInteger("Id_artist"),
+                        doc.getString("Name_Artist"),
+                        doc.getString("Image")
+                );
+                loveArtists.add(artist);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return loveArtists;
+    }
+
     public void Insert_User(Users user) {
         try {
             MongoCollection<Document> collection = database.getCollection("Users");
@@ -72,7 +136,7 @@ public class MongoDB {
                     .append("owner", playlist.getOwner())
                     .append("description", playlist.getDescription())
                     .append("is_shuffle", playlist.getIs_shuffle())
-                    .append("image", playlist.getImage())
+                    .append("Image", playlist.getImage())
                     .append("status", playlist.getStatus())
                     .append("created_at", playlist.getCreated_at() != null ? playlist.getCreated_at() : new Date());
             collection.insertOne(doc);
@@ -105,7 +169,7 @@ public class MongoDB {
                     String ownerValue = doc.getString("owner");
                     String description = doc.getString("description");
                     Boolean isShuffle = doc.getBoolean("is_shuffle", false); // Mặc định là false nếu không có
-                    String image = doc.getString("image");
+                    String image = doc.getString("Image");
                     String status = doc.getString("status");
                     String createAt = doc.getString("created_at");
                     Boolean isPin = doc.getBoolean("is_pin", false);
@@ -117,7 +181,7 @@ public class MongoDB {
         return playlistsList;
     }
 
-    public void Update_Playlist(Playlists playlist) {
+    public void Update_Playlist(Playlists playlist, Boolean img) {
         try {
             var collection = database.getCollection("Playlists");
             var filter = new org.bson.Document("_id", new ObjectId(playlist.getId()));
@@ -125,8 +189,14 @@ public class MongoDB {
             var updateDocument = new org.bson.Document("$set", new org.bson.Document()
                     .append("name", playlist.getName())
                     .append("description", playlist.getDescription())
-                    .append("Image", playlist.getImage())
             );
+            List<Playlists> i = get_Playlists(playlist.getOwner());
+            if(img) updateDocument = new org.bson.Document("$set", new org.bson.Document()
+                        .append("name", playlist.getName())
+                        .append("description", playlist.getDescription())
+                        .append("Image", playlist.getImage())
+                        );
+
 
             collection.updateOne(filter, updateDocument);
 
@@ -155,7 +225,9 @@ public class MongoDB {
                     .append("fileName", song.getTitle()+" - "+song.getArtist()+".mp3")
                     .append("link", song.getLink())
                     .append("where", song.getWhere())
-                    .append("artist_id", song.getArtist_id());
+                    .append("artist_id", song.getArtist_id())
+                    .append("duration", song.getDuration())
+                    .append("genre", song.getGenre());
 
             collection.insertOne(doc);
         } catch (Exception e) {
@@ -171,7 +243,6 @@ public class MongoDB {
             Document query = new Document("where", where);
 
             for (Document doc : collection.find(query)) {
-                // Tạo đối tượng Queue_Item từ kết quả truy vấn
                 Queue_Item item = new Queue_Item();
                 item.setMongoID(doc.getObjectId("_id").toString());
                 item.setImgCover(doc.getString("ImgCover"));
@@ -182,6 +253,8 @@ public class MongoDB {
                 item.setLink(doc.getString("link"));
                 item.setWhere(doc.getString("where"));
                 item.setArtist_id(doc.getInteger("artist_id"));
+                item.setDuration(doc.getInteger("duration"));
+                item.setGenre(doc.getString("genre"));
 
                 songs.add(item);
             }
@@ -217,8 +290,9 @@ public class MongoDB {
             MongoCollection<Document> collection = database.getCollection("Queue");
             Document doc = new Document("_id", new ObjectId()) // ID tự động sinh
                     .append("owner", queue.getOwner())
-                    .append("is_shuffle", queue.getIs_shuffle())
-                    .append("is_loop", queue.getIs_loop());
+                    .append("Title", queue.getTitle())
+                    .append("Artist", queue.getArtist())
+                    .append("Filename", queue.getFilename());
             collection.insertOne(doc);
             System.out.println("Queue track inserted successfully.");
         } catch (Exception e) {
@@ -285,5 +359,35 @@ public class MongoDB {
                 ? i.getPublisher_metadata().getArtist()
                 : i.getUser().getUsername();
         return nam;
+    }
+
+    public boolean checkFile(String fileName) {
+        File folder = new File("./mp3_queue");
+        if (!folder.exists() || !folder.isDirectory()) {
+            return false; // Thư mục không tồn tại hoặc không phải là thư mục.
+        }
+
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile() && file.getName().equals(fileName)) {
+                    return true; // Tìm thấy file "abc.mp3".
+                }
+            }
+        }
+        return false;
+    }
+
+    public String Spaces(int number) {
+        return String.format("%,d", number).replace(",", " ");
+    }
+
+    public static String get_duration(int durationMillis) {
+        int totalSeconds = durationMillis / 1000; // Chuyển sang giây
+        int minutes = totalSeconds / 60;         // Tính số phút
+        int seconds = totalSeconds % 60;         // Tính số giây còn lại
+
+        // Trả về chuỗi định dạng "m:ss"
+        return String.format("%d:%02d", minutes, seconds);
     }
 }

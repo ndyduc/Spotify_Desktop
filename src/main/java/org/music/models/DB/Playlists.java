@@ -12,13 +12,13 @@ public class Playlists {
     private Boolean is_pin;
     private Boolean is_dl;
 
-    public Playlists(String id, String name, String owner, String description, Boolean is_shuffle, String image, String status, String created_at, Boolean is_pin, Boolean is_dl) {
+    public Playlists(String id, String name, String owner, String description, Boolean is_shuffle, String Image, String status, String created_at, Boolean is_pin, Boolean is_dl) {
         this.id = id;
         this.name = name;
         this.owner = owner;
         this.description = description;
         this.is_shuffle = is_shuffle;
-        Image = image;
+        this.Image = Image;
         this.status = status;
         this.created_at = created_at;
         this.is_pin = is_pin;

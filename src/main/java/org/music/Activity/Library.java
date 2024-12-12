@@ -9,12 +9,15 @@ import org.music.models.DB.Playlists;
 import org.music.models.Queue_Item;
 import org.music.models.Track;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -57,7 +60,7 @@ class Library extends Border_Radius {
 
                 Playlists p = new Playlists(null, "Playlist number " + (i+1), "_ndyduc_", null, false, null, "undownload", currentDate, false, false);
                 mongo.Insert_into_playlist(p);
-                System.out.println("hey hey hey");
+                home.refresh_House();
                 Refesh_Library();
             }
 
@@ -135,27 +138,23 @@ class Library extends Border_Radius {
         panel.setLayout(new BorderLayout(10,5));
         panel.setMinimumSize(new Dimension(200,50));
 
-        // Tạo một JLabel mặc định (có thể hiển thị ảnh mặc định nếu tải không thành công)
-        Rounded_Label libimg = new Rounded_Label(new ImageIcon("src/main/resources/pngs/x.png"),10);
+        Rounded_Label libimg = new Rounded_Label(new ImageIcon("src/main/resources/pngs/me.png"),10);
         libimg.setPreferredSize(new Dimension(50, 50));
 
         new Thread(() -> {
             try {
-                String a = sc.IMG500x500(item.getImage());
-                if (a != null && !a.isEmpty()) {
-                    URI uri = new URI(a);
-                    ImageIcon imageIcon = new ImageIcon(uri.toURL());
-                    SwingUtilities.invokeLater(() -> {
-                        libimg.setIcon(imageIcon);
-                    });
-                } else {
-                    SwingUtilities.invokeLater(() -> {
-                        libimg.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));
-                    });
-                }
+                String a = item.getImage();
+                ImageIcon imageIcon;
 
-            } catch (URISyntaxException | MalformedURLException e) {
-//                e.printStackTrace();
+                if (a != null && !a.isEmpty()) {
+                    BufferedImage img = ImageIO.read(new File(a));
+                    imageIcon = new ImageIcon(img);
+                } else {
+                    imageIcon = new ImageIcon("src/main/resources/pngs/me.png");
+                }
+                SwingUtilities.invokeLater(() -> libimg.setIcon(imageIcon));
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
 

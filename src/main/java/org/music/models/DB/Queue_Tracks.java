@@ -3,26 +3,47 @@ package org.music.models.DB;
 public class Queue_Tracks {
     private String  id;
     private String owner;
-    private String is_shuffle;
-    private String is_loop;
+    private String Title;
+    private String Artist;
+    private String Filename;
+
+    public Queue_Tracks(String id, String owner, String title, String artist, String filename) {
+        this.id = id;
+        this.owner = owner;
+        Title = title;
+        Artist = artist;
+        Filename = filename;
+    }
+
+    public String getArtist() {
+        return Artist;
+    }
+
+    public void setArtist(String Artist) {
+        this.Artist = Artist;
+    }
+
+    public String getFilename() {
+        return Filename;
+    }
+
+    public void setFilename(String Filename) {
+        this.Filename = Filename;
+    }
+
+    public String getTitle() {
+        return Title;
+    }
+
+    public void setTitle(String Title) {
+        this.Title = Title;
+    }
 
     public String  getId() {
         return id;
     }
     public void setId(String  id) {
         this.id = id;
-    }
-    public String getIs_loop() {
-        return is_loop;
-    }
-    public void setIs_loop(String is_loop) {
-        this.is_loop = is_loop;
-    }
-    public String getIs_shuffle() {
-        return is_shuffle;
-    }
-    public void setIs_shuffle(String is_shuffle) {
-        this.is_shuffle = is_shuffle;
     }
     public String getOwner() {
         return owner;
