@@ -1,5 +1,6 @@
 package org.music.Activity;
 
+import com.wrapper.spotify.model_objects.specification.Followers;
 import org.checkerframework.checker.units.qual.C;
 import org.music.Components.Border_Radius;
 import org.music.Components.ImagePanel;
@@ -8,6 +9,7 @@ import org.music.Components.Rounded_Label;
 import org.music.Func.Stream;
 import org.music.MongoDB;
 import org.music.getAPI.Soundcloud;
+import org.music.models.DB.Love_Artists;
 import org.music.models.Queue_Item;
 import org.music.models.Search_User.Collection;
 import org.music.models.Songs;
@@ -16,10 +18,7 @@ import org.music.models.Users;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -46,7 +45,8 @@ public class Artist extends Border_Radius {
     JLabel Name_artist = new JLabel();
     JLabel Listener = new JLabel();
 
-    JButton Playbtn = home.createButton("src/main/resources/pngs/player-play.png",40,40);
+    JButton Playbtn = home.createButton("src/main/resources/pngs/player-play.png",50,50);
+    Rounded_Label fol = new Rounded_Label(new ImageIcon("src/main/resources/pngs/fl_grey.png"),30);
 
 
     public Artist(int radius, Collection user, Stream stream, Frame window, Home home) {
@@ -66,15 +66,15 @@ public class Artist extends Border_Radius {
 
         Border_Radius btn = new Border_Radius(30);
         btn.setBackground(Color.decode("#2a2a2a"));
-        btn.setPreferredSize(new Dimension(550, 60));
+        btn.setPreferredSize(new Dimension(550, 70));
         btn.setLayout(new FlowLayout(FlowLayout.LEFT));
-        btn.setBorder(new EmptyBorder(5,30,5,50));
+        btn.setBorder(new EmptyBorder(5,30,5,0));
         btn.add(Playbtn);
 
         JPanel inf = new JPanel(new BorderLayout());
         inf.setBackground(new Color(0,0,0,0));
-        inf.setPreferredSize(new Dimension(300,50));
-        inf.setBorder(new EmptyBorder(0,50,0,50));
+        inf.setPreferredSize(new Dimension(350,50));
+        inf.setBorder(new EmptyBorder(0,50,0,0));
         Name_artist.setText(user.getUsername());
         Name_artist.setFont(new Font("Serif", Font.BOLD, 26));
         Name_artist.setForeground(Color.white);
@@ -84,9 +84,22 @@ public class Artist extends Border_Radius {
         inf.add(Name_artist, BorderLayout.NORTH);
         inf.add(Listener, BorderLayout.SOUTH);
         btn.add(inf);
-
-        JButton fol = createButton("src/main/resources/pngs/fl_gray.png", 50,30);
         btn.add(fol);
+
+        fol.setForeground(Color.white);
+        fol.setFont(new Font("Serif", Font.BOLD, 16));
+        fol.setPreferredSize(new Dimension(80,40));
+        fol.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                follow();
+                fol.setIcon(null);
+                fol.setText("Unfollow");
+                fol.revalidate();
+                fol.repaint();
+                home.refresh_House();
+            }
+        });
 
         JPanel abc = new JPanel(new BorderLayout());
         abc.setLayout(new BorderLayout(0,15));
@@ -113,7 +126,7 @@ public class Artist extends Border_Radius {
                 Dimension windowSize = window.getSize();
                 if (windowSize.width == screenSize.width && windowSize.height == screenSize.height |
                         window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
-                    main_all.setPreferredSize(new Dimension(1150,850));
+                    main_all.setPreferredSize(new Dimension(1170,850));
                     full = true;
                     refresh_neun(user, 1150);
 
@@ -131,11 +144,20 @@ public class Artist extends Border_Radius {
         });
     }
 
+    private void follow(){
+        Love_Artists ar = new Love_Artists(null, "_ndyduc_", user.getId(), user.getUsername(), user.getAvatar_url());
+        mongo.Insert_Love_Artist(ar);
+    }
+
     public void refresh_neun(Collection user, int width) {
         loadimg(user);
+        this.user = user;
         neun.removeAll();
         neun.setBackground(Color.decode("#1a1a1a"));
+        fol.setIcon(new ImageIcon("src/main/resources/pngs/fl_grey.png"));
 
+        Name_artist.setText(user.getUsername());
+        Listener.setText(user.getFollowers_count() + " Followers");
         neun.add(fav);
 
         SwingWorker<java.util.List<JPanel>, JPanel> worker = new SwingWorker<>() {
@@ -146,7 +168,6 @@ public class Artist extends Border_Radius {
                 List<org.music.models.Search_Tracks.Collection> tracks = tra.getCollection().stream()
                         .filter(collection -> collection.getUser() != null && collection.getUser().getId() == user.getId())
                         .collect(Collectors.toList());
-
 
                 int z = 1;
                 for (org.music.models.Search_Tracks.Collection track : tracks) {
@@ -195,7 +216,7 @@ public class Artist extends Border_Radius {
         }).start();
     }
 
-    private Border_Radius get_item(org.music.models.Search_Tracks.Collection track, int number, int width) {
+    private JPanel get_item(org.music.models.Search_Tracks.Collection track, int number, int width) {
         Border_Radius bor  = new Border_Radius(30);
         bor.setBackground(Color.decode("#1a1a1a"));
         bor.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -238,11 +259,11 @@ public class Artist extends Border_Radius {
         clue.setLayout(new FlowLayout(FlowLayout.LEFT));
 
         JButton dl = createButton("src/main/resources/pngs/circle-arrow-down-green.png", 25, 25);
-        if(checkFile(mongo.File_name(track))) clue.add(dl);
+        if(mongo.checkFile(mongo.File_name(track))) clue.add(dl);
 
         JLabel ar = new JLabel(mongo.get_Artist(track));
         ar.setFont(new Font("Serif", Font.PLAIN, 12));
-        ar.setForeground(Color.white);
+        ar.setForeground(Color.gray);
         clue.add(ar);
 
         info.add(name, BorderLayout.NORTH);
@@ -263,14 +284,14 @@ public class Artist extends Border_Radius {
         }
 
 
-        JLabel lis = new JLabel(Spaces(track.getPlayback_count())+" Streamed");
+        JLabel lis = new JLabel(mongo.Spaces(track.getPlayback_count())+" Streamed");
         lis.setFont(new Font("Serif", Font.PLAIN, 12));
         lis.setForeground(Color.GRAY);
         lis.setPreferredSize(new Dimension((int)(width*0.18),50));
 
         bor.add(lis);
 
-        JLabel duration = new JLabel(get_duration(track.getDuration()));
+        JLabel duration = new JLabel(mongo.get_duration(track.getDuration()));
         duration.setFont(new Font("Serif", Font.PLAIN, 12));
         duration.setForeground(Color.GRAY);
         duration.setPreferredSize(new Dimension((int)(width*0.05),50));
@@ -306,33 +327,6 @@ public class Artist extends Border_Radius {
         return bor;
     }
 
-    public boolean checkFile(String fileName) {
-        File folder = new File("./mp3_queue");
-        if (!folder.exists() || !folder.isDirectory()) {
-            return false; // Thư mục không tồn tại hoặc không phải là thư mục.
-        }
 
-        File[] files = folder.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile() && file.getName().equals(fileName)) {
-                    return true; // Tìm thấy file "abc.mp3".
-                }
-            }
-        }
-        return false;
-    }
 
-    public static String get_duration(int durationMillis) {
-        int totalSeconds = durationMillis / 1000; // Chuyển sang giây
-        int minutes = totalSeconds / 60;         // Tính số phút
-        int seconds = totalSeconds % 60;         // Tính số giây còn lại
-
-        // Trả về chuỗi định dạng "m:ss"
-        return String.format("%d:%02d", minutes, seconds);
-    }
-
-    public String Spaces(int number) {
-        return String.format("%,d", number).replace(",", " ");
-    }
 }
