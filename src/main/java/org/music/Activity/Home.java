@@ -72,6 +72,11 @@ public class Home implements Queue_Lis, Artist_Lis{
     private Playlist playlist;
     private Artist artist;
     private MongoDB mongo = new MongoDB();
+    int wit = 860;
+
+    private final LinkedList<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
+    static final String DIRECTORY = "./mp3_queue";
+    static final String DOWNLOAD = "./mp3_playlist";
 
     private Timer searchTimer = new Timer(1000, null);
 
@@ -79,6 +84,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         String name_track = "K. Cigarettes";
         stream = new Stream();
         item = sc.getQueue_Item(name_track);
+        addToQueue(item);
 
         window.setSize(860, 600);
         window.setMinimumSize(new Dimension(860, 600));
@@ -166,8 +172,7 @@ public class Home implements Queue_Lis, Artist_Lis{
             if (!showartist.get()) {
                 Artist.setIcon(loadIcon("src/main/resources/pngs/user-scan-green.png", 25, 25));
                 showartist.set(true);
-                tra = new Track_info(30, sc.get_track_by_id(item.getId()),
-                        showqueue, Queue, showartist, Artist );
+                tra = new Track_info(30, item, this, showqueue, Queue, showartist, Artist );
                 tra.setShowArtistListener(this); // Thiết lập listener
                 window.add(tra, BorderLayout.EAST);
                 window.revalidate(); // Làm mới giao diện
@@ -193,7 +198,7 @@ public class Home implements Queue_Lis, Artist_Lis{
             if (!showqueue.get()) {
                 // Tạo và thêm Queue_L khi showqueue đang là false
                 Queue.setIcon(loadIcon("src/main/resources/pngs/queue-green.png", 25, 25));
-                que = new Queue_L(30, item, showqueue, Queue, showartist, Artist);
+                que = new Queue_L(30, this, showqueue, Queue, showartist, Artist);
                 que.setShowQueueListener(this); // Thiết lập listener
                 window.add(que, BorderLayout.EAST);
                 window.revalidate(); // Refresh giao diện
@@ -215,7 +220,7 @@ public class Home implements Queue_Lis, Artist_Lis{
                 showqueue.set(false);
             }
         });
-
+        Queue.doClick();
         Pausebtn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -242,8 +247,10 @@ public class Home implements Queue_Lis, Artist_Lis{
                 if (windowSize.width == screenSize.width && windowSize.height == screenSize.height |
                         window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
                     updateToFullScreenLayout();
+                    wit = 1150;
                 } else if (window.getExtendedState() == JFrame.NORMAL) {
                     updateToNormalLayout();
+                    wit = 860 ;
                 }
             }
         });
@@ -253,12 +260,6 @@ public class Home implements Queue_Lis, Artist_Lis{
         window.setVisible(true);
     }
 
-    public void Play_track(){
-        stream.Play(item.getFileName());
-        isplaying = true;
-        Pausebtn.setIcon(pauseIcon);
-        stream.startTimer(position, positionSlider, duration);
-    }
 
     private void updateToFullScreenLayout() {
         centerbot.setPreferredSize(new Dimension(850, 90));
@@ -561,7 +562,7 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         if(tra != null){
             tra.removeAll();
-            tra = new Track_info(30, sc.get_track_by_id(item.getId()), showqueue, Queue, showartist, Artist);
+            tra = new Track_info(30, item, this, showqueue, Queue, showartist, Artist);
             tra.setShowArtistListener(this);
             tra.revalidate();
             tra.repaint();
@@ -751,7 +752,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         });
 
         option2.addActionListener(e -> {
-            System.out.println("Option 2: Add to Queue selected");
+            addToQueue(cv_track_to_queuei(i));
         });
 
         return popupMenu;
@@ -829,7 +830,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         });
 
         op3.addActionListener(e -> {
-//            queue
+            addToQueue(i);
         });
 
         return popupMenu;
@@ -870,13 +871,17 @@ public class Home implements Queue_Lis, Artist_Lis{
         item.setLink(tracks.getPermalink_url());
         item.setFileName(tracks.getTitle()+" - "+tracks.getUser().getUsername()+".mp3");
         item.setImgCover(tracks.getArtwork_url());
-        item.setId(tracks.getId());
+        item.setDuration(tracks.getDuration());
+        item.setGenre(tracks.getGenre());
         return item;
     }
 
     public void refresh_House(){
         house.refesh_playlists();
         house.refesh_artist();
+    }
+    public void refresh_Queue(){
+        que.refresh_que();
     }
 
     public void addToQueue(Queue_Item item) {
@@ -900,7 +905,7 @@ public class Home implements Queue_Lis, Artist_Lis{
             DLFile(item.getLink(), item.getFileName());
         });
     }
-    public java.util.Queue<Queue_Item> getQueueDL() {
+    public LinkedList<Queue_Item> getQueueDL() {
         return QueueDL;
     }
     public void clearQueue() {
@@ -913,7 +918,15 @@ public class Home implements Queue_Lis, Artist_Lis{
         QueueDL.clear();
         System.out.println("Hàng đợi đã được xóa.");
     }
-
+    public Queue_Item getAndRemoveFromQueue(Queue_Item i) {
+        for (Queue_Item item : QueueDL) {
+            if (item.getImgCover().equals(i.getImgCover())) {
+                QueueDL.remove(item); // Xóa phần tử tìm thấy
+                return item;          // Trả về phần tử đã xóa
+            }
+        }
+        return null; // Không tìm thấy, trả về null
+    }
 
     public void Delete_file(String filename) {
         File file = new File(DIRECTORY + "/" + filename);
@@ -923,39 +936,80 @@ public class Home implements Queue_Lis, Artist_Lis{
     }
 
     private static final ExecutorService executor = Executors.newCachedThreadPool();
-    public static void DLFile(String link_file, String file_name) {
-        executor.submit(() -> {
-            try {
-                File directory = new File(DIRECTORY);
-                if (!directory.exists()) {
-                    directory.mkdirs();
-                }
 
-                File newFile = new File(DIRECTORY + "/" + file_name);
-                if (newFile.exists()) {
-                    System.out.println("File đã tồn tại: " + newFile.getAbsolutePath());
-                    return; // Dừng lại nếu file đã tồn tại
-                }
-
-                ProcessBuilder pb = new ProcessBuilder(
-                        "yt-dlp",
-                        "-f", "bestaudio[ext=mp3]", // Lựa chọn chỉ định dạng mp3
-                        "--output", newFile.getAbsolutePath(),
-                        link_file
-                );
-                Process process = pb.start();
-                process.waitFor();
-                System.out.println("Đã tải file: " + newFile.getAbsolutePath());
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Lỗi khi tải file: " + e.getMessage());
+    public void DLFile(String link_file, String file_name) {
+        try {
+            File directory = new File(DIRECTORY);
+            if (!directory.exists()) {
+                directory.mkdirs(); // Tạo thư mục nếu chưa tồn tại
             }
-        });
+
+            File newFile = new File(DIRECTORY + "/" + file_name);
+            File oldFile = new File(DOWNLOAD + "/" + file_name);
+            if (newFile.exists() || oldFile.exists()) {
+                System.out.println("File đã tồn tại: " + newFile.getAbsolutePath());
+                return; // Không tải nếu file đã tồn tại
+            }
+
+            System.out.println("Bắt đầu tải file: " + file_name);
+
+            // Tải file với yt-dlp
+            ProcessBuilder pb = new ProcessBuilder(
+                    "yt-dlp",
+                    "-f", "bestaudio[ext=mp3]",
+                    "--output", newFile.getAbsolutePath(),
+                    link_file
+            );
+            Process process = pb.start();
+            process.waitFor();
+
+            System.out.println("Đã tải file: " + newFile.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Lỗi khi tải file: " + e.getMessage());
+        }
+    }
+    public void Dl_for_pl(String link_file, String file_name) {
+        try {
+            File directory = new File(DOWNLOAD);
+            if (!directory.exists()) { directory.mkdirs();  }
+
+            File newFile = new File(DOWNLOAD + "/" + file_name);
+            if (newFile.exists()) { return; }
+
+            // Tải file với yt-dlp
+            ProcessBuilder pb = new ProcessBuilder(
+                    "yt-dlp",
+                    "-f", "bestaudio[ext=mp3]",
+                    "--output", newFile.getAbsolutePath(),
+                    link_file
+            );
+            Process process = pb.start();
+            process.waitFor();
+
+            System.out.println("Đã tải file: " + newFile.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Lỗi khi tải file: " + e.getMessage());
+        }
+    }
+    public void Delete_filepl(String filename) {
+        File file = new File(DOWNLOAD + "/" + filename);
+        if (file.exists()) {
+            file.delete();
+
+        } else System.out.println("File doesn't exists !");
     }
 
-    private final java.util.Queue<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
-    static final String DIRECTORY = "./mp3_queue";
+
+    public void Play_track(){
+        stream.Play(item.getFileName());
+        isplaying = true;
+        Pausebtn.setIcon(pauseIcon);
+        stream.startTimer(position, positionSlider, duration);
+    }
+
+    public int get_wit(){return wit;}
 }
 
 

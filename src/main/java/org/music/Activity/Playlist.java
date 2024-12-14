@@ -61,7 +61,7 @@ public class Playlist extends Border_Radius {
 
     JButton Playbtn = home.createButton("src/main/resources/pngs/player-play.png",40,40);
     JButton shuffle ;
-    JButton downl = home.createButton("src/main/resources/pngs/circle-arrow-down.png",30,30);
+    JButton downl ;
     JButton dots = home.createButton("src/main/resources/pngs/pencil.png",30,30);
     JButton sort = home.createButton("src/main/resources/pngs/playlist.png",30,30);
     JButton trash = home.createButton("src/main/resources/pngs/trash.png",30,30);
@@ -79,11 +79,10 @@ public class Playlist extends Border_Radius {
         this.stream = stream;
         this.pl = playlist;
         this.window = window;
-        if (pl.getIs_shuffle())
-            shuffle = home.createButton("src/main/resources/pngs/arrows-shuffle-green.png",30,30);
-        else
-            shuffle = home.createButton("src/main/resources/pngs/arrows-shuffle.png",30,30);
-
+        if (pl.getIs_shuffle()) shuffle = createButton("src/main/resources/pngs/arrows-shuffle-green.png",30,30);
+        else shuffle = createButton("src/main/resources/pngs/arrows-shuffle.png",30,30);
+        if(pl.getIs_dl()) downl = createButton("src/main/resources/pngs/circle-arrow-down-green.png",30,30);
+        else downl = createButton("src/main/resources/pngs/circle-arrow-down.png",30,30);
         setBackground(new Color(101, 145, 126));
         setBorder(new EmptyBorder(10,0,0,0));
 
@@ -125,6 +124,29 @@ public class Playlist extends Border_Radius {
             }
         });
 
+        downl.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (pl.getIs_dl()){
+                    List<Queue_Item> item = mongo.getSongsByWhere(pl.getId());
+                    for (Queue_Item i : item) { home.Delete_filepl(i.getFileName()); }
+                    downl.setIcon(loadIcon("src/main/resources/pngs/circle-arrow-down.png",30,30));
+                    mongo.DL_Playlist(pl, false);
+                    reload_pl(pl);
+                }else {
+                    new Thread(() ->{
+                        List<Queue_Item> item = mongo.getSongsByWhere(pl.getId());
+                        for (Queue_Item i : item) {
+                            home.Dl_for_pl(i.getLink(), i.getFileName());
+                        }
+                    }).start();
+                    downl.setIcon(loadIcon("src/main/resources/pngs/circle-arrow-down-green.png",30,30));
+                    mongo.DL_Playlist(pl, true);
+                    reload_pl(pl);
+                }
+            }
+        });
+
         window.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -162,6 +184,8 @@ public class Playlist extends Border_Radius {
     public void reload_pl(Playlists i){
         this.pl = i;
         chance_ing = false;
+        if(i.getIs_dl()) downl.setIcon(loadIcon("src/main/resources/pngs/circle-arrow-down-green.png",30,30));
+        else downl.setIcon(loadIcon("src/main/resources/pngs/circle-arrow-down.png",30,30));
         new Thread(() -> {
             try {
                 String a = i.getImage();
@@ -476,11 +500,16 @@ public class Playlist extends Border_Radius {
             alb.setPreferredSize(new Dimension(540, 30));
         }
 
-        SwingWorker<java.util.List<JPanel>, JPanel> worker = new SwingWorker<>() {
+        SwingWorker<List<JPanel>, JPanel> worker = new SwingWorker<>() {
             @Override
-            protected java.util.List<JPanel> doInBackground() {
-                java.util.List<JPanel> panels = new ArrayList<>();
-                java.util.List<Queue_Item> tracks = mongo.getSongsByWhere(pl.getId());
+            protected List<JPanel> doInBackground() {
+                List<JPanel> panels = new ArrayList<>();
+                List<Queue_Item> tracks = mongo.getSongsByWhere(pl.getId());
+                new Thread(() ->{
+                    for(Queue_Item item : tracks){
+                        if(!mongo.checkFile(item.getFileName()) && pl.getIs_dl()) home.Dl_for_pl(item.getLink(), item.getFileName());
+                    }
+                }).start();
                 int z = 1;
 
                 for (Queue_Item track : tracks) {
@@ -492,7 +521,7 @@ public class Playlist extends Border_Radius {
             }
 
             @Override
-            protected void process(java.util.List<JPanel> chunks) {
+            protected void process(List<JPanel> chunks) {
                 for (JPanel panel : chunks) {
                     zehn.add(panel);
                 }
@@ -641,18 +670,34 @@ public class Playlist extends Border_Radius {
                 isplaying = true;
                 Playbtn.setIcon(home.loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
 
-                home.clearQueue();
-                List<Queue_Item> queue = mongo.getSongsByWhere(track.getWhere());
-                for (Queue_Item item : queue) {
-                    home.addToQueue(item);
-                    Queue<Queue_Item>  que = home.getQueueDL();
-                    for (Queue_Item i : que) {
-                        System.out.println("Title: " + i.getTitle() +
-                                ", Artist: " + i.getArtist() +
-                                ", File Name: " + i.getFileName());
+                List<Queue_Item> available = mongo.getSongsByWhere(track.getWhere());
+                LinkedList<Queue_Item> que = home.getQueueDL();
+                boolean store = false;
+                for (Queue_Item item : available) {
+                    if(!mongo.checkFile(item.getFileName())) {
+                        store = false;
+                        break;
                     }
+                    else {
+                        store = true;
+                    }
+                }
 
-//                    mongo.Insert_into_queue(new Queue_Tracks(null, "_ndyduc_", item.getTitle(), item.getArtist(), item.getFileName()));
+
+                if (!store) {
+                    for (Queue_Item item : que) {
+                        home.Delete_file(item.getFileName());
+                    }
+                }
+                home.clearQueue();
+                for (Queue_Item item : available) {
+                    home.addToQueue(item);
+                }
+                
+                que = home.getQueueDL();
+                Queue_Item first = null;
+                for (Queue_Item item : que) {
+                    if (Objects.equals(item.getImgCover(), track.getImgCover())) first = home.getAndRemoveFromQueue(item);
                 }
                 home.addToFront(track);
                 home.setCurrentSong(track);

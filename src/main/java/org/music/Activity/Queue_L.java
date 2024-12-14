@@ -2,6 +2,7 @@ package org.music.Activity;
 
 import org.music.Components.Border_Radius;
 import org.music.Components.Rounded_Label;
+import org.music.getAPI.Soundcloud;
 import org.music.models.Queue_Item;
 import org.music.models.Track;
 
@@ -14,15 +15,22 @@ import java.awt.event.MouseEvent;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.music.Activity.Home.createButton;
 import static org.music.Activity.Home.loadIcon;
+import java.util.*;
 
 public class Queue_L extends Border_Radius {
     public Queue_Lis listener;
-    public Queue_L(int radius, Queue_Item item, AtomicBoolean showqueue, JButton Queue, AtomicBoolean showartist, JButton Artist) {
+    private Home home;
+    Soundcloud sc = new Soundcloud();
+    JPanel Libs = new JPanel(new GridLayout(0, 1));
+
+    public Queue_L(int radius, Home home, AtomicBoolean showqueue, JButton Queue, AtomicBoolean showartist, JButton Artist) {
         super(radius);
+        this.home = home;
         setLayout(new BorderLayout(0, 10));
         setPreferredSize(new Dimension(250, 0));
         setBackground(Color.decode("#1a1a1a"));
@@ -54,27 +62,37 @@ public class Queue_L extends Border_Radius {
         qu.setFont(new Font("Serif", Font.BOLD,16));
         JButton close = createButton("src/main/resources/pngs/x.png",30,30);
         queue_top.add(qu, BorderLayout.WEST);
+        JButton clear = createButton("src/main/resources/pngs/playlist-x.png",25,25);
+        queue_top.add(clear, BorderLayout.CENTER);
         queue_top.add(close, BorderLayout.EAST);
         add(queue_top, BorderLayout.NORTH);
 
-        JPanel quescroll = new JPanel(new FlowLayout());
+        JPanel quescroll = new JPanel(new FlowLayout(FlowLayout.LEFT));
         quescroll.setBackground(Color.decode("#1a1a1a"));
-        JPanel Libs = new JPanel(new GridLayout(0, 1));
+
+
         Libs.setBackground(Color.decode("#1a1a1a"));
 
-        Track l = new Track();
-        JPanel newque1 = getQueue(l, item);
-        JPanel newque2 = getQueue(l, item);
+        refresh_que();
 
-        Libs.add(newque1);
-        Libs.add(newque2);
         quescroll.add(Libs);
         JScrollPane playlistScroll = new JScrollPane(quescroll);
         playlistScroll.setBorder(null);
         playlistScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        playlistScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        playlistScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        playlistScroll.getVerticalScrollBar().setUnitIncrement(16);
         add(playlistScroll, BorderLayout.CENTER);
 
+        clear.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.clearQueue();
+                Libs.removeAll();
+                Libs.revalidate();
+                Libs.repaint();
+                refresh_que();
+            }
+        });
 
         close.addActionListener(e -> {
             if (!showqueue.get()) {
@@ -89,16 +107,27 @@ public class Queue_L extends Border_Radius {
                 showqueue.set(false);
             }
 
-            // Kích hoạt listener nếu có
             if (listener != null) {
                 listener.onShowQueueChanged(showqueue);
             }
         });
     }
 
-    private JPanel getQueue(Track i, Queue_Item item) {
+    public void refresh_que(){
+        Libs.removeAll();
+        Queue<Queue_Item> queue = home.getQueueDL();
+        int z = 1;
+        for(Queue_Item i : queue){
+            Libs.add(getQueue(i, z == 1));
+            z++;
+        }
+
+    }
+
+    private JPanel getQueue(Queue_Item item, Boolean first) {
         Border_Radius panel = new Border_Radius(15);
-        panel.setBackground(Color.decode("#1a1a1a"));
+        if(first) panel.setBackground(Color.decode("#2a2a2a"));
+        else panel.setBackground(Color.decode("#1a1a1a"));
         panel.setBorder(new LineBorder(new Color(0,0,0), 5));
         panel.setBorder(new EmptyBorder(5,5,5,5));
         panel.setLayout(new BorderLayout(10,5));
@@ -115,25 +144,22 @@ public class Queue_L extends Border_Radius {
                     queimg.setIcon(imageIcon);
                 });
 
-            } catch (URISyntaxException | MalformedURLException e) {
-                e.printStackTrace();
-                SwingUtilities.invokeLater(() -> {
-                    queimg.setIcon(new ImageIcon("src/main/resources/pngs/x.png"));
-                });
+            } catch (URISyntaxException | MalformedURLException | NullPointerException e) {
+                SwingUtilities.invokeLater(() -> { queimg.setIcon(new ImageIcon("src/main/resources/pngs/me.png"));});
             }
         }).start();
 
         JPanel rque = new JPanel(new BorderLayout());
         rque.setBackground(new Color(0,0,0,0));
 
-        JLabel nameque = new JLabel(item.getFileName());
+        JLabel nameque = new JLabel(item.getTitle());
+        nameque.setPreferredSize(new Dimension(200,20));
         nameque.setFont(new Font("Serif", Font.PLAIN, 14));
         nameque.setBorder(new EmptyBorder(5,0,0,0));
         nameque.setForeground(Color.WHITE);
 
         JPanel botque = new JPanel(new BorderLayout());
         botque.setBackground(new Color(0,0,0,0));
-        if (i.isIsdl()) botque.add(new JLabel(new ImageIcon("src/main/resources/pngs/download.png")));
         JLabel queartist = new JLabel(item.getArtist());
         queartist.setForeground(new Color(178,178,178));
         botque.add(queartist);
@@ -153,6 +179,33 @@ public class Queue_L extends Border_Radius {
             @Override
             public void mouseExited(MouseEvent e) {
                 panel.setBackground(Color.decode("#1a1a1a"));
+            }
+        });
+        final Point[] initialClick = new Point[1];
+        panel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Queue_Item ne = home.getAndRemoveFromQueue(item);
+                home.addToFront(ne);
+                home.setCurrentSong(ne);
+                home.Play_track();
+                refresh_que();
+            }
+            @Override
+            public void mousePressed(MouseEvent e) {
+                initialClick[0] = e.getPoint(); // Lưu tọa độ chuột
+            }
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                int thisX = panel.getX();
+                int thisY = panel.getY();
+
+                int deltaX = e.getX() - initialClick[0].x;
+
+                if (deltaX > 0) panel.setLocation(thisX + deltaX, thisY); // Cập nhật vị trí
+
+                home.getAndRemoveFromQueue(item);
+                refresh_que();
             }
         });
 

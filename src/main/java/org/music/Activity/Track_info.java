@@ -181,7 +181,7 @@ public class Track_info extends Border_Radius {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                home.reload_Artist(song.getArtist_id(), home.getwid() ==  1150 ? 1150 : 860);
+                home.reload_Artist(song.getArtist_id(), home.get_wit() ==  1150 ? 1150 : 860);
             }
         });
 

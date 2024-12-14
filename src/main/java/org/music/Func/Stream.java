@@ -110,10 +110,26 @@ public class Stream {
     }
 
     public void Play(String file_name) {
-        File file = new File("./mp3_queue" + "/" + file_name);
-        if (playerThread != null && playerThread.isAlive()) {stop();}
+        if (playerThread != null && playerThread.isAlive()) { stop();}
+
         playerThread = new Thread(() -> {
             try {
+                File file = new File("./mp3_playlist" + "/" + file_name);
+
+                while (!file.exists()) {
+                    try {
+                        File check = new File("./mp3_queue" + "/" + file_name);
+                        if (!check.exists()) {
+                            System.out.println("File không tìm thấy. Đang thử lại sau 2 giây...");
+                            Thread.sleep(2000);  // Chờ 2 giây
+                            file = new File("./mp3_queue" + "/" + file_name);  // Kiểm tra lại sự tồn tại của file
+                        }
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;  // Nếu bị gián đoạn, thoát ra
+                    }
+                }
                 mp3Stream = new BufferedInputStream(new FileInputStream(file));
 
                 if (elapsedTime > 0) { mp3Stream.skip(calculateBytesToSkip(elapsedTime));}

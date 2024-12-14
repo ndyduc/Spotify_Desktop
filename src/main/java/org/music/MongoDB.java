@@ -350,21 +350,9 @@ public class MongoDB {
     }
 
     public boolean checkFile(String fileName) {
-        File folder = new File("./mp3_queue");
-        if (!folder.exists() || !folder.isDirectory()) {
-            folder = new File("./mp3_playlist/");
-                if (!folder.exists())  return false; // Thư mục không tồn tại hoặc không phải là thư mục.
-        }
-
-        File[] files = folder.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile() && file.getName().equals(fileName)) {
-                    return true; // Tìm thấy file "abc.mp3".
-                }
-            }
-        }
-        return false;
+        File folder1 = new File("./mp3_queue/"+fileName);
+        File folder2 = new File("./mp3_playlist/"+fileName);
+        return folder1.exists() || folder2.exists();
     }
 
     public String Spaces(int number) {
