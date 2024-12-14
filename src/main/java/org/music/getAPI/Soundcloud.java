@@ -42,12 +42,14 @@ public class Soundcloud {
 
                 if (tracks != null && !tracks.isEmpty()) {
                     Queue_Item item = new Queue_Item();
-                    item.setId(tracks.getFirst().getId());
                     item.setTitle(tracks.getFirst().getTitle());
                     item.setArtist(tracks.getFirst().getUser().getUsername());
                     item.setLink(tracks.getFirst().getPermalink_url());
                     item.setFileName(tracks.getFirst().getTitle()+" - "+tracks.getFirst().getUser().getUsername()+".mp3");
                     item.setImgCover(tracks.getFirst().getArtwork_url());
+                    item.setArtist_id(tracks.getFirst().getUser().getId());
+                    item.setDuration(tracks.getFirst().getDuration());
+                    item.setGenre(tracks.getFirst().getGenre());
                     return item;
                 } else {
                     System.out.println("No tracks found");

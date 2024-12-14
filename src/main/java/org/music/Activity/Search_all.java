@@ -5,6 +5,7 @@ import org.music.Components.Button_Radius;
 import org.music.Components.RoundedPanel;
 import org.music.Components.Rounded_Label;
 import org.music.Func.Stream;
+import org.music.MongoDB;
 import org.music.getAPI.Soundcloud;
 import org.music.models.Albums;
 import org.music.models.Queue_Item;
@@ -33,6 +34,7 @@ public class Search_all extends Border_Radius {
     Soundcloud sc = new Soundcloud();
     CardLayout layout = new CardLayout();
     JPanel main = new JPanel(layout);
+    MongoDB mongo = new MongoDB();
     private String key;
     Frame frame;
     Stream stream;
@@ -405,7 +407,7 @@ public class Search_all extends Border_Radius {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                Track_Stream(stream, i.getId());
+                Track_Stream(stream, i);
             }
         });
 
@@ -744,9 +746,7 @@ public class Search_all extends Border_Radius {
         name_track.setForeground(Color.WHITE);
         name_track.setFont(new Font("Serif", Font.PLAIN, 17));
         JLabel artist_track = new JLabel();
-        String nam = (i.getPublisher_metadata() != null && i.getPublisher_metadata().getArtist() != null)
-                ? i.getPublisher_metadata().getArtist()
-                : i.getUser().getUsername();
+        String nam = mongo.get_Artist(i);
         artist_track.setText(nam);
         artist_track.setForeground(Color.GRAY);
         artist_track.setFont(new Font("Serif", Font.PLAIN, 15));
@@ -763,6 +763,7 @@ public class Search_all extends Border_Radius {
         albu.setText(al);
         albu.setForeground(Color.GRAY);
         albu.setFont(new Font("Serif", Font.PLAIN, 15));
+        albu.setBorder(new EmptyBorder(0,0,0,10));
 
         JButton add = createButton("src/main/resources/pngs/circle-plus.png",25,25);
         JPopupMenu pop = home.popup_Search(i, add);
@@ -818,7 +819,7 @@ public class Search_all extends Border_Radius {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                Track_Stream(stream, i.getId());
+                Track_Stream(stream, i);
             }
         });
 
@@ -944,8 +945,7 @@ public class Search_all extends Border_Radius {
         return a;
     }
 
-    private void Track_Stream(Stream stream, int id){
-        org.music.models.Search_Tracks.Collection track = sc.get_track_by_id(id);
+    private void Track_Stream(Stream stream, org.music.models.Search_Tracks.Collection track){
         Queue_Item qi = home.cv_track_to_queuei(track);
         home.addToFront(qi);
         home.setCurrentSong(qi);

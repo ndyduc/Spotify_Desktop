@@ -138,7 +138,9 @@ public class MongoDB {
                     .append("is_shuffle", playlist.getIs_shuffle())
                     .append("Image", playlist.getImage())
                     .append("status", playlist.getStatus())
-                    .append("created_at", playlist.getCreated_at() != null ? playlist.getCreated_at() : new Date());
+                    .append("created_at", playlist.getCreated_at() != null ? playlist.getCreated_at() : new Date())
+                    .append("is_dl", false)
+                    .append("is_pin", false);
             collection.insertOne(doc);
             System.out.println("Playlist inserted successfully.");
         } catch (Exception e) {
@@ -173,7 +175,7 @@ public class MongoDB {
                     String status = doc.getString("status");
                     String createAt = doc.getString("created_at");
                     Boolean isPin = doc.getBoolean("is_pin", false);
-                    Boolean isDl = doc.getBoolean("is_dl", false);
+                    Boolean isDl = doc.getBoolean("is_dl");
 
                     Playlists playlist = new Playlists(id, name, ownerValue, description, isShuffle, image, status, createAt, isPin, isDl);
                     playlistsList.add(playlist);
@@ -204,6 +206,20 @@ public class MongoDB {
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Error updating playlist: " + e.getMessage());
+        }
+    }
+
+    public void DL_Playlist(Playlists playlist, Boolean pin) {
+        try {
+            var collection = database.getCollection("Playlists");
+            var filter = new org.bson.Document("_id", new ObjectId(playlist.getId()));
+            if(!pin) System.out.println("?????????????????");
+            var updateDocument = new org.bson.Document("$set", new org.bson.Document()
+                    .append("is_dl", pin)
+            );
+            collection.updateOne(filter, updateDocument);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -268,8 +284,6 @@ public class MongoDB {
     public boolean isSongExists(String link, String where) {
         MongoCollection<Document> collection = database.getCollection("Songs");
         Document query = new Document("link", link).append("where", where);
-
-        // Kiểm tra nếu có ít nhất một bài hát thỏa mãn query
         return collection.countDocuments(query) > 0;
     }
 
@@ -280,32 +294,6 @@ public class MongoDB {
             Bson filter = Filters.eq("_id", objectId);
 
             collection.deleteOne(filter);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void Insert_into_queue(Queue_Tracks queue) {
-        try {
-            MongoCollection<Document> collection = database.getCollection("Queue");
-            Document doc = new Document("_id", new ObjectId()) // ID tự động sinh
-                    .append("owner", queue.getOwner())
-                    .append("Title", queue.getTitle())
-                    .append("Artist", queue.getArtist())
-                    .append("Filename", queue.getFilename());
-            collection.insertOne(doc);
-            System.out.println("Queue track inserted successfully.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void Remove_from_queue(Queue_Tracks queue) {
-        try {
-            MongoCollection<Document> collection = database.getCollection("Queue");
-            Document query = new Document("_id", queue.getId());
-            collection.deleteOne(query);
-            System.out.println("Queue track removed successfully.");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -364,7 +352,8 @@ public class MongoDB {
     public boolean checkFile(String fileName) {
         File folder = new File("./mp3_queue");
         if (!folder.exists() || !folder.isDirectory()) {
-            return false; // Thư mục không tồn tại hoặc không phải là thư mục.
+            folder = new File("./mp3_playlist/");
+                if (!folder.exists())  return false; // Thư mục không tồn tại hoặc không phải là thư mục.
         }
 
         File[] files = folder.listFiles();
@@ -382,7 +371,7 @@ public class MongoDB {
         return String.format("%,d", number).replace(",", " ");
     }
 
-    public static String get_duration(int durationMillis) {
+    public String get_duration(int durationMillis) {
         int totalSeconds = durationMillis / 1000; // Chuyển sang giây
         int minutes = totalSeconds / 60;         // Tính số phút
         int seconds = totalSeconds % 60;         // Tính số giây còn lại

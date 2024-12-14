@@ -1,18 +1,33 @@
 package org.music.models;
 
 public class Queue_Item {
+    private String mongoID;
     private String ImgCover;
     private String title;
     private String artist;
     private String album;
     private String fileName;
     private String link;
-    private String mongoID;
-    private int id;
     private String where;
     private int artist_id;
     private int duration;
     private String genre;
+
+    public Queue_Item(){}
+
+    public Queue_Item(String imgCover, String title, String artist, String album, String fileName, String link, String mongoID, String where, int artist_id, int duration, String genre) {
+        ImgCover = imgCover;
+        this.title = title;
+        this.artist = artist;
+        this.album = album;
+        this.fileName = fileName;
+        this.link = link;
+        this.mongoID = mongoID;
+        this.where = where;
+        this.artist_id = artist_id;
+        this.duration = duration;
+        this.genre = genre;
+    }
 
     public String getGenre() {
         return genre;
@@ -60,14 +75,6 @@ public class Queue_Item {
 
     public void setWhere(String where) {
         this.where = where;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getImgCover() {
