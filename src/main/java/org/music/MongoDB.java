@@ -359,6 +359,9 @@ public class MongoDB {
         return String.format("%,d", number).replace(",", " ");
     }
 
+    public int get_Duration(int durationmillis){
+        return durationmillis/1000;
+    }
     public String get_duration(int durationMillis) {
         int totalSeconds = durationMillis / 1000; // Chuyển sang giây
         int minutes = totalSeconds / 60;         // Tính số phút

@@ -38,18 +38,18 @@ public class Soundcloud {
             if (response.isSuccessful()) {
                 Songs soundcloudResponse = response.body();
                 assert soundcloudResponse != null;
-                List<org.music.models.Search_Tracks.Collection> tracks = soundcloudResponse.getCollection();
+                org.music.models.Search_Tracks.Collection tracks = soundcloudResponse.getCollection().getFirst();
 
-                if (tracks != null && !tracks.isEmpty()) {
+                if (tracks != null) {
                     Queue_Item item = new Queue_Item();
-                    item.setTitle(tracks.getFirst().getTitle());
-                    item.setArtist(tracks.getFirst().getUser().getUsername());
-                    item.setLink(tracks.getFirst().getPermalink_url());
-                    item.setFileName(tracks.getFirst().getTitle()+" - "+tracks.getFirst().getUser().getUsername()+".mp3");
-                    item.setImgCover(tracks.getFirst().getArtwork_url());
-                    item.setArtist_id(tracks.getFirst().getUser().getId());
-                    item.setDuration(tracks.getFirst().getDuration());
-                    item.setGenre(tracks.getFirst().getGenre());
+                    item.setTitle(tracks.getTitle());
+                    item.setArtist(tracks.getUser().getUsername());
+                    item.setLink(tracks.getPermalink_url());
+                    item.setFileName(tracks.getTitle()+" - "+tracks.getUser().getUsername()+".mp3");
+                    item.setImgCover(tracks.getArtwork_url());
+                    item.setArtist_id(tracks.getUser().getId());
+                    item.setDuration(tracks.getDuration());
+                    item.setGenre(tracks.getGenre());
                     return item;
                 } else {
                     System.out.println("No tracks found");

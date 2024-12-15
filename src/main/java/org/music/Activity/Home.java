@@ -34,7 +34,6 @@ public class Home implements Queue_Lis, Artist_Lis{
 
     Soundcloud sc = new Soundcloud();
     private Queue_Item item;
-    private Thread CurrentSong; //load image online
     private boolean isplaying = false;
     private boolean isschuffle = false;
     private final JLabel crTitle = new JLabel();
@@ -51,27 +50,26 @@ public class Home implements Queue_Lis, Artist_Lis{
     JButton skipforward;
     JButton Repeat;
 
-    private JPanel slider;
     private JSlider positionSlider;
     private JLabel position;
     private boolean isUserAdjusting = false;
     AtomicBoolean showqueue = new AtomicBoolean(false);
     AtomicBoolean showartist = new AtomicBoolean(false);
 
-    private JButton Artist = createButton("src/main/resources/pngs/user-scan.png", 25, 25);
-    private JButton Queue = createButton("src/main/resources/pngs/queue.png", 25, 25);
-    private JButton Volume = createButton("src/main/resources/pngs/volume.png", 25, 25);
+    private final JButton Artist = createButton("src/main/resources/pngs/user-scan.png", 25, 25);
+    private final JButton Queue = createButton("src/main/resources/pngs/queue.png", 25, 25);
+    private final JButton Volume = createButton("src/main/resources/pngs/volume.png", 25, 25);
     private Queue_L que;
     private Track_info tra;
-    private Library lib = new Library(30, item, this);
+    private final Library lib = new Library(30, item, this);
 
     CardLayout center_home = new CardLayout();
     JPanel main_center = new JPanel(center_home);
     private House house;
-    private Search_all s_all;
-    private Playlist playlist;
-    private Artist artist;
-    private MongoDB mongo = new MongoDB();
+    private final Search_all s_all;
+    private final Playlist playlist;
+    private final Artist artist;
+    private final MongoDB mongo = new MongoDB();
     int wit = 860;
 
     private final LinkedList<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
@@ -128,6 +126,7 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         JPanel leftbot = new JPanel(new GridBagLayout());
         getleftbot(leftbot, item);
+        setCurrentSong(item);
         bottomPanel.add(leftbot, BorderLayout.WEST);
 
         JPanel rightbot = new JPanel(new GridBagLayout());
@@ -139,31 +138,37 @@ public class Home implements Queue_Lis, Artist_Lis{
         window.add(bottomPanel, BorderLayout.SOUTH);
 
         positionSlider.addChangeListener(e -> {
-            int check = positionSlider.getValue();
-            if (check == duration) {
-                Pausebtn.setIcon(playIcon);
-                isplaying = false;
-                stream.stop();
-            }
-            if (positionSlider.getValueIsAdjusting()) {
-                isUserAdjusting = true;
-                stream.pause();
-            } else {
-                if (isUserAdjusting) {
-                    long seconds = positionSlider.getValue(); // Giá trị giây từ slider
-                    position.setText(stream.formatTime(seconds)); // Cập nhật thời gian hiển thị
-                    stream.elapsedTime = seconds * 1000;
-                    stream.startTime = System.currentTimeMillis() - stream.elapsedTime;
+            int currentValue = positionSlider.getValue();
 
-                    if (seconds == duration) {
+            // Khi kéo slider
+            if (positionSlider.getValueIsAdjusting()) {
+                isUserAdjusting = true; // Đang tua
+                stream.pause(); // Tạm dừng nhạc
+            } else {
+                // Khi kết thúc tua
+                if (isUserAdjusting) {
+                    // Cập nhật thời gian elapsedTime
+                    long newElapsedTime = currentValue * 1000L; // Slider trả về giây
+                    stream.elapsedTime = newElapsedTime;
+                    stream.startTime = System.currentTimeMillis() - newElapsedTime;
+
+                    // Cập nhật hiển thị thời gian
+                    position.setText(stream.formatTime(currentValue));
+
+                    // Nếu tua tới cuối bài, dừng nhạc
+                    if (currentValue == duration) {
                         Pausebtn.setIcon(playIcon);
+                        isplaying = false;
                         stream.stop();
+                    } else {
+                        // Phát lại nhạc từ vị trí mới
+                        stream.Play(item.getFileName());
+                        Pausebtn.setIcon(pauseIcon);
+                        stream.startTimer(position, positionSlider, duration); // Restart Timer
+                        isplaying = true;
                     }
-                    stream.Play(item.getFileName());
-                    Pausebtn.setIcon(pauseIcon);
-                    stream.startTimer(position, positionSlider, duration);
-                    isplaying = true;
-                    isUserAdjusting = false; // Kết thúc việc điều chỉnh
+
+                    isUserAdjusting = false; // Đặt lại trạng thái
                 }
             }
         });
@@ -221,17 +226,18 @@ public class Home implements Queue_Lis, Artist_Lis{
             }
         });
         Queue.doClick();
+
         Pausebtn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (!isplaying) {
                     stream.Play(item.getFileName());
                     Pausebtn.setIcon(pauseIcon);
-                    stream.startTimer(position, positionSlider, duration);
+                    stream.startTimer(position, positionSlider, duration); // Khởi động Timer
                 } else {
                     stream.pause();
                     Pausebtn.setIcon(playIcon);
-                    stream.stopTimer();
+                    stream.stopTimer(); // Dừng Timer
                 }
                 isplaying = !isplaying;
             }
@@ -454,7 +460,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         centerbot2.setPreferredSize(new Dimension(400, 10));
         centerbot2.setLayout(new BoxLayout(centerbot2, BoxLayout.X_AXIS));
 
-        slider = new JPanel(new BorderLayout(10,0));
+        JPanel slider = new JPanel(new BorderLayout(10, 0));
         slider.setBackground(Color.BLACK);
 
         positionSlider = getSlider(duration);
@@ -476,7 +482,6 @@ public class Home implements Queue_Lis, Artist_Lis{
 
     private void getleftbot(JPanel leftbot, Queue_Item item){
         leftbot.setBackground(Color.BLACK);
-        setCurrentSong(item);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5); // Khoảng cách giữa các thành phần
 
@@ -534,10 +539,10 @@ public class Home implements Queue_Lis, Artist_Lis{
 
     public void setCurrentSong(Queue_Item item) {
         this.item = item;
-        CurrentSong = new Thread(() -> {
+        Thread currentSong = new Thread(() -> {
             SwingUtilities.invokeLater(() -> {
                 try {
-                    URI urib = new URI(item.getImgCover());
+                    URI urib = new URI(sc.IMG500x500(item.getImgCover()));
                     imgcrSong.setIcon(new ImageIcon(urib.toURL())); // Sử dụng đối tượng hiện tại
                     imgcrSong.setPreferredSize(new Dimension(50, 50));
                 } catch (Exception e) {
@@ -545,7 +550,7 @@ public class Home implements Queue_Lis, Artist_Lis{
                 }
             });
         });
-        CurrentSong.start();
+        currentSong.start();
 
         crTitle.setText(item.getTitle());
         crTitle.setForeground(Color.WHITE);
@@ -557,8 +562,9 @@ public class Home implements Queue_Lis, Artist_Lis{
         crArtist.setFont(new Font("Arial", Font.PLAIN, 12));
         crArtist.setForeground(new Color(178,178,178));
 
-        getDuration(item.getTitle(), item.getArtist());
-        positionSlider.setMaximum(duration);
+        least.setText(mongo.get_duration(item.getDuration()));
+
+        positionSlider.setMaximum(mongo.get_Duration(item.getDuration()));
 
         if(tra != null){
             tra.removeAll();
@@ -568,26 +574,6 @@ public class Home implements Queue_Lis, Artist_Lis{
             tra.repaint();
             window.add(tra, BorderLayout.EAST);
             window.revalidate();
-        }
-    }
-
-    private void getDuration(String title, String artist){
-        String dura;
-        File mp3File = new File("./mp3_queue/" + title + " - " + artist + ".mp3");
-        try {
-            final int BITRATE = 128;
-            long fileSizeInBytes = mp3File.length();
-            long bitrateInBytesPerSecond = (BITRATE * 1024) / 8; // Tính toán byte mỗi giây
-            long durationInSeconds = fileSizeInBytes / bitrateInBytesPerSecond;
-            long minute = durationInSeconds / 60; // Tính phút
-            long second = durationInSeconds % 60; // Tính giây
-
-            this.duration = (int) durationInSeconds;
-            dura = String.format("%02d:%02d", minute, second); // Định dạng
-            least.setText(dura); // Cập nhật JLabel với độ dài
-        } catch (Exception e) {
-            e.printStackTrace();
-            least.setText("--:--");
         }
     }
 
@@ -647,7 +633,7 @@ public class Home implements Queue_Lis, Artist_Lis{
                 int trackHeight = 5;
                 int trackY = trackRect.y + (trackRect.height - trackHeight) / 2;
                 int arcRadius = 5;
-                Color customGreen = new Color(123, 227, 125);
+                Color customGreen = new Color(101,145,126);
                 int fillWidth = (int) ((float) positionSlider.getValue() / positionSlider.getMaximum() * trackRect.width);
                 g2d.setColor(customGreen);
                 g2d.fillRoundRect(trackRect.x, trackY, fillWidth, trackHeight, arcRadius, arcRadius);
@@ -884,9 +870,10 @@ public class Home implements Queue_Lis, Artist_Lis{
         que.refresh_que();
     }
 
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
     public void addToQueue(Queue_Item item) {
         QueueDL.offer(item);
-        new Thread(() ->{
+        executor.submit(() -> {
             DLFile(item.getLink(), item.getFileName());
         });
     }
@@ -900,8 +887,8 @@ public class Home implements Queue_Lis, Artist_Lis{
         return QueueDL.isEmpty();
     }
     public void addToFront(Queue_Item item) {
-        ((LinkedList<Queue_Item>) QueueDL).addFirst(item);
-        new Thread(() ->{
+        QueueDL.addFirst(item);
+        executor.submit(() -> {
             DLFile(item.getLink(), item.getFileName());
         });
     }
@@ -932,11 +919,8 @@ public class Home implements Queue_Lis, Artist_Lis{
         File file = new File(DIRECTORY + "/" + filename);
         if (file.exists()) {
             file.delete();
-        } else System.out.println("File doesn't exists !");
+        };
     }
-
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
-
     public void DLFile(String link_file, String file_name) {
         try {
             File directory = new File(DIRECTORY);
@@ -998,7 +982,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         if (file.exists()) {
             file.delete();
 
-        } else System.out.println("File doesn't exists !");
+        };
     }
 
 

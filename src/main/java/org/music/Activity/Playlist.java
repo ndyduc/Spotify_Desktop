@@ -695,10 +695,17 @@ public class Playlist extends Border_Radius {
                 }
                 
                 que = home.getQueueDL();
+                Iterator<Queue_Item> iterator = que.iterator();
                 Queue_Item first = null;
-                for (Queue_Item item : que) {
-                    if (Objects.equals(item.getImgCover(), track.getImgCover())) first = home.getAndRemoveFromQueue(item);
+
+                while (iterator.hasNext()) {
+                    Queue_Item item = iterator.next();
+                    if (Objects.equals(item.getImgCover(), track.getImgCover())) {
+                        first = home.getAndRemoveFromQueue(item);
+                        break;
+                    }
                 }
+
                 home.addToFront(track);
                 home.setCurrentSong(track);
                 home.Play_track();

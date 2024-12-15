@@ -51,12 +51,12 @@ public class Stream {
     }
 
     public void startTimer(JLabel position, JSlider positionSlider, int duration) {
-        timer = new Timer(1000, new ActionListener() {
+        timer = new Timer(200, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 long currentTime = System.currentTimeMillis();
                 long totalElapsed = elapsedTime + (currentTime - startTime);
-                long seconds = totalElapsed / 1000;
+                long seconds = totalElapsed / 1000L;
 
                 if (seconds >= duration) {
                     position.setText(formatTime(duration));
