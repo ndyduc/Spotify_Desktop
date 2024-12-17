@@ -407,6 +407,7 @@ public class Search_all extends Border_Radius {
 
             @Override
             public void mousePressed(MouseEvent e) {
+                home.stop_stream();
                 Track_Stream(i);
             }
         });
@@ -819,6 +820,7 @@ public class Search_all extends Border_Radius {
 
             @Override
             public void mousePressed(MouseEvent e) {
+                home.stop_stream();
                 Track_Stream(i);
             }
         });
@@ -947,8 +949,8 @@ public class Search_all extends Border_Radius {
 
     private void Track_Stream(org.music.models.Search_Tracks.Collection track){
         Queue_Item qi = home.cv_track_to_queuei(track);
-        home.refresh_Queue();
         home.addToFront(qi);
+        home.refresh_Queue();
         home.setCurrentSong(qi);
         home.Play_track();
     }

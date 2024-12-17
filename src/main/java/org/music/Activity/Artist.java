@@ -317,8 +317,11 @@ public class Artist extends Border_Radius {
                 nu.setIcon(null);
             }
             @Override
-            public void mousePressed(MouseEvent e) {
-                Playbtn.setIcon(home.loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
+            public void mouseClicked(MouseEvent e) {
+                Playbtn.setIcon(loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
+                Queue_Item qi = home.cv_track_to_queuei(track);
+                home.addToFront(qi);
+                home.refresh_Queue();
                 home.setCurrentSong(home.cv_track_to_queuei(track));
                 home.Play_track();
             }

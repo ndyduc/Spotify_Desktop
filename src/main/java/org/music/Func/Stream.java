@@ -94,16 +94,15 @@ public class Stream {
 
         playerThread = new Thread(() -> {
             try {
-                File file = new File("./mp3_playlist" + "/" + file_name);
+                File file = new File("./mp3_playlist/" + file_name);
 
                 while (!file.exists()) {
                     try {
-                        File check = new File("./mp3_queue" + "/" + file_name);
+                        File check = new File("./mp3_queue/" + file_name);
                         if (!check.exists()) {
-                            System.out.println("File không tìm thấy. Đang thử lại sau 2 giây...");
-                            Thread.sleep(1000);  // Chờ 1 giây
-                            file = new File("./mp3_queue" + "/" + file_name);  // Kiểm tra lại sự tồn tại của file
-                        }
+                            System.out.println("File không tìm thấy. Đang thử lại sau 1 giây...");
+                            Thread.sleep(1000);  // Chờ 1 giây // Kiểm tra lại sự tồn tại của file
+                        } else file = check;
 
                     } catch (InterruptedException e) {return; }
                 }
@@ -114,6 +113,7 @@ public class Stream {
                 startTime = System.currentTimeMillis(); // Ghi lại thời gian bắt đầu phát
 
                 player.play();
+                System.out.println("luong player dang choi "+file_name);
             } catch (Exception e) {
                 e.printStackTrace();
             }

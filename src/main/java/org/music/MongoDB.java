@@ -209,13 +209,13 @@ public class MongoDB {
         }
     }
 
-    public void DL_Playlist(Playlists playlist, Boolean pin) {
+    public void DL_Playlist(Playlists playlist) {
         try {
             var collection = database.getCollection("Playlists");
             var filter = new org.bson.Document("_id", new ObjectId(playlist.getId()));
-            if(!pin) System.out.println("?????????????????");
+            if(!playlist.getIs_dl()) System.out.println("?????????????????");
             var updateDocument = new org.bson.Document("$set", new org.bson.Document()
-                    .append("is_dl", pin)
+                    .append("is_dl", playlist.getIs_dl())
             );
             collection.updateOne(filter, updateDocument);
         } catch (Exception e) {

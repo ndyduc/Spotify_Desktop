@@ -180,32 +180,14 @@ public class Queue_L extends Border_Radius {
             public void mouseExited(MouseEvent e) {
                 if (!first) panel.setBackground(Color.decode("#1a1a1a"));
             }
-        });
-        final Point[] initialClick = new Point[1];
-        panel.addMouseListener(new MouseAdapter() {
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 Queue_Item ne = home.getAndRemoveFromQueue(item);
                 home.addToFront(ne);
                 home.setCurrentSong(ne);
+                refresh_que();
                 home.Play_track();
-                refresh_que();
-            }
-            @Override
-            public void mousePressed(MouseEvent e) {
-                initialClick[0] = e.getPoint(); // Lưu tọa độ chuột
-            }
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                int thisX = panel.getX();
-                int thisY = panel.getY();
-
-                int deltaX = e.getX() - initialClick[0].x;
-
-                if (deltaX > 0) panel.setLocation(thisX + deltaX, thisY); // Cập nhật vị trí
-
-                home.getAndRemoveFromQueue(item);
-                refresh_que();
             }
         });
 

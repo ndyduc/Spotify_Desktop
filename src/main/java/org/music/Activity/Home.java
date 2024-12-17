@@ -32,7 +32,7 @@ import java.util.concurrent.Executors;
 
 public class Home implements Queue_Lis, Artist_Lis{
     JFrame window = new JFrame("_ndyduc_");
-    private final Stream stream;
+    public final Stream stream;
 
     Soundcloud sc = new Soundcloud();
     private Queue_Item item;
@@ -45,7 +45,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     private final JLabel least = new JLabel();
     private ShapeIcon playIcon;
     private ShapeIcon pauseIcon;
-    private JButton Pausebtn;
+    public JButton Pausebtn;
     JButton Shuffle;
     JButton skipback;
     JButton skipforward;
@@ -73,7 +73,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     private final MongoDB mongo = new MongoDB();
     int wit = 860;
 
-    private final LinkedList<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
+    public final LinkedList<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
     static final String DIRECTORY = "./mp3_queue";
     static final String DOWNLOAD = "./mp3_playlist";
 
@@ -918,9 +918,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     public void DLFile(String link_file, String file_name) {
         try {
             File directory = new File(DIRECTORY);
-            if (!directory.exists()) {
-                directory.mkdirs(); // Tạo thư mục nếu chưa tồn tại
-            }
+            if (!directory.exists()) { directory.mkdirs();  }
 
             File newFile = new File(DIRECTORY + "/" + file_name);
             File oldFile = new File(DOWNLOAD + "/" + file_name);
@@ -982,13 +980,18 @@ public class Home implements Queue_Lis, Artist_Lis{
 
 
     public void Play_track(){
-        stream.stop();
         stream.Play(item.getFileName());
         isplaying = true;
+        positionSlider.setValue(0);
         Pausebtn.setIcon(pauseIcon);
         stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration()));
     }
 
+    public void stop_stream(){
+        stream.pause();
+        Pausebtn.setIcon(playIcon);
+        isplaying = false;
+    }
     public int get_wit(){return wit;}
 }
 

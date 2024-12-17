@@ -131,8 +131,6 @@ public class Playlist extends Border_Radius {
                     List<Queue_Item> item = mongo.getSongsByWhere(pl.getId());
                     for (Queue_Item i : item) { home.Delete_filepl(i.getFileName()); }
                     pl.setIs_dl(false);
-                    mongo.DL_Playlist(pl, false);
-                    reload_pl(pl);
                 }else {
                     new Thread(() ->{
                         List<Queue_Item> item = mongo.getSongsByWhere(pl.getId());
@@ -140,10 +138,10 @@ public class Playlist extends Border_Radius {
                             home.Dl_for_pl(i.getLink(), i.getFileName());
                         }
                     }).start();
-                    mongo.DL_Playlist(pl, true);
                     pl.setIs_dl(true);
-                    reload_pl(pl);
                 }
+                mongo.DL_Playlist(pl);
+                reload_pl(pl);
             }
         });
 
@@ -665,6 +663,11 @@ public class Playlist extends Border_Radius {
         JPopupMenu pop = home.popup_Album(track, more );
         home.createPopup(more, pop);
 
+        set_item_clicked(bor, nu, number, track);
+        return bor;
+    }
+
+    private void set_item_clicked(Border_Radius bor, JLabel nu, int number, Queue_Item track) {
         bor.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -683,6 +686,7 @@ public class Playlist extends Border_Radius {
 
             @Override
             public void mouseClicked(MouseEvent e) {
+                home.stop_stream();
                 isplaying = true;
                 Playbtn.setIcon(loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
 
@@ -692,6 +696,7 @@ public class Playlist extends Border_Radius {
                 for (Queue_Item item : inplaylist) {
                     if(!mongo.checkFile(item.getFileName())) {
                         store = false;
+                        System.out.println(item.getFileName()+"k thay !");
                         break;
                     }
                 }
@@ -700,13 +705,15 @@ public class Playlist extends Border_Radius {
                     for (Queue_Item item : que) {
                         home.Delete_file(item.getFileName());
                     }
+
+                    home.clearQueue();
+                    for (Queue_Item item : inplaylist) { home.addToQueue(item); }
+                } else {
+                    home.QueueDL.clear();
+                    for (Queue_Item item : inplaylist) { home.QueueDL.offer(item); }
                 }
 
-                home.clearQueue();
-                for (Queue_Item item : inplaylist) { home.addToQueue(item); }
-                
                 que = home.getQueueDL();
-
                 for (Queue_Item item : que) {
                     if ( Objects.equals(item.getFileName(), track.getFileName())) {
                         home.getAndRemoveFromQueue(item);
@@ -714,15 +721,16 @@ public class Playlist extends Border_Radius {
                     }
                 }
 
-                home.addToFront(track);
+                if(!store) home.addToFront(track);
+                else {
+                    home.stream.stop();
+                    home.QueueDL.offer(track);
+                }
                 home.refresh_Queue();
                 home.setCurrentSong(track);
                 home.Play_track();
             }
         });
 
-        return bor;
     }
-
-
 }
