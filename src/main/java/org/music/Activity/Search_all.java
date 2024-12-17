@@ -63,7 +63,7 @@ public class Search_all extends Border_Radius {
     Home home;
     int width;
 
-    public Search_all(int radius, String keyword, Stream stream, JFrame window, Home home) {
+    public Search_all(int radius, String keyword, JFrame window, Home home) {
         super(radius);
         this.key = keyword;
         this.stream = stream;
@@ -407,7 +407,7 @@ public class Search_all extends Border_Radius {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                Track_Stream(stream, i);
+                Track_Stream(i);
             }
         });
 
@@ -819,7 +819,7 @@ public class Search_all extends Border_Radius {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                Track_Stream(stream, i);
+                Track_Stream(i);
             }
         });
 
@@ -945,8 +945,9 @@ public class Search_all extends Border_Radius {
         return a;
     }
 
-    private void Track_Stream(Stream stream, org.music.models.Search_Tracks.Collection track){
+    private void Track_Stream(org.music.models.Search_Tracks.Collection track){
         Queue_Item qi = home.cv_track_to_queuei(track);
+        home.refresh_Queue();
         home.addToFront(qi);
         home.setCurrentSong(qi);
         home.Play_track();

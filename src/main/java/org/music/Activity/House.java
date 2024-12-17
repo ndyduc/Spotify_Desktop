@@ -72,10 +72,15 @@ public class House extends Border_Radius {
         center.add(Album, BorderLayout.SOUTH);
 
         JPanel main = new JPanel(new BorderLayout(0,10));
-        main.setPreferredSize(new Dimension(580, 650));
+        main.setPreferredSize(new Dimension(580, 850));
         main.setBackground(Color.decode("#1a1a1a"));
         main.add(top, BorderLayout.NORTH);
         main.add(center, BorderLayout.CENTER);
+
+        Border_Radius empty = new Border_Radius(30);
+        empty.setBackground(Color.decode("#1a1a1a"));
+        empty.setPreferredSize(new Dimension(600, 200));
+        main.add(empty, BorderLayout.SOUTH);
 
         JScrollPane scrollPane = new JScrollPane(main);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -251,7 +256,7 @@ public class House extends Border_Radius {
         Border_Radius item = new Border_Radius(30);
         item.setBackground(Color.decode("#2a2a2a"));
         item.setLayout(new FlowLayout(FlowLayout.LEFT));
-        item.setPreferredSize(new Dimension(280,50));
+        item.setPreferredSize(new Dimension(285,50));
 
         Rounded_Label img = new Rounded_Label(new ImageIcon("src/main/resources/pngs/me.png"),30);
         img.setPreferredSize(new Dimension(40,40));

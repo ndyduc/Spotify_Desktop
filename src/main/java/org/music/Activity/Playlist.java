@@ -130,7 +130,7 @@ public class Playlist extends Border_Radius {
                 if (pl.getIs_dl()){
                     List<Queue_Item> item = mongo.getSongsByWhere(pl.getId());
                     for (Queue_Item i : item) { home.Delete_filepl(i.getFileName()); }
-                    downl.setIcon(loadIcon("src/main/resources/pngs/circle-arrow-down.png",30,30));
+                    pl.setIs_dl(false);
                     mongo.DL_Playlist(pl, false);
                     reload_pl(pl);
                 }else {
@@ -140,8 +140,8 @@ public class Playlist extends Border_Radius {
                             home.Dl_for_pl(i.getLink(), i.getFileName());
                         }
                     }).start();
-                    downl.setIcon(loadIcon("src/main/resources/pngs/circle-arrow-down-green.png",30,30));
                     mongo.DL_Playlist(pl, true);
+                    pl.setIs_dl(true);
                     reload_pl(pl);
                 }
             }
@@ -269,11 +269,11 @@ public class Playlist extends Border_Radius {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (isplaying) {
-                    Playbtn.setIcon(home.loadIcon("src/main/resources/pngs/player-play.png", 40, 40));
+                    Playbtn.setIcon(loadIcon("src/main/resources/pngs/player-play.png", 40, 40));
                 } else {
-                    Playbtn.setIcon(home.loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
+                    Playbtn.setIcon(loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
                 }
-                isplaying = !isplaying; // Thay đổi trạng thái chơi
+                isplaying = !isplaying;
             }
         });
         sort.setBorder(new EmptyBorder(0,400,0,0));
@@ -430,6 +430,22 @@ public class Playlist extends Border_Radius {
 
         edit.add(img_e);
         edit.add(head_edit);
+
+        Border_Radius album = new Border_Radius(30);
+        album.setBackground(new Color(101,145,126));
+        album.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        Rounded_Label img_ab = new Rounded_Label(new ImageIcon(),30);
+        img_ab.setPreferredSize(new Dimension(200,200));
+        new Thread(() -> {
+            try {
+                String a = playlist.getImage();
+                ImageIcon imageIcon = new ImageIcon(a);
+                SwingUtilities.invokeLater(() -> { img_e.setIcon(imageIcon); });
+            } catch (NullPointerException e) {
+                SwingUtilities.invokeLater(() -> { img.setIcon(new ImageIcon("src/main/resources/pngs/me.png")); });
+            }
+        }).start();
 
         pl_center.add(head_main, "show");
         pl_center.add(edit, "edit");
@@ -668,45 +684,38 @@ public class Playlist extends Border_Radius {
             @Override
             public void mouseClicked(MouseEvent e) {
                 isplaying = true;
-                Playbtn.setIcon(home.loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
+                Playbtn.setIcon(loadIcon("src/main/resources/pngs/player-pause.png", 40, 40));
 
-                List<Queue_Item> available = mongo.getSongsByWhere(track.getWhere());
+                List<Queue_Item> inplaylist = mongo.getSongsByWhere(track.getWhere());
                 LinkedList<Queue_Item> que = home.getQueueDL();
-                boolean store = false;
-                for (Queue_Item item : available) {
+                boolean store = true;
+                for (Queue_Item item : inplaylist) {
                     if(!mongo.checkFile(item.getFileName())) {
                         store = false;
                         break;
                     }
-                    else {
-                        store = true;
-                    }
                 }
-
 
                 if (!store) {
                     for (Queue_Item item : que) {
                         home.Delete_file(item.getFileName());
                     }
                 }
+
                 home.clearQueue();
-                for (Queue_Item item : available) {
-                    home.addToQueue(item);
-                }
+                for (Queue_Item item : inplaylist) { home.addToQueue(item); }
                 
                 que = home.getQueueDL();
-                Iterator<Queue_Item> iterator = que.iterator();
-                Queue_Item first = null;
 
-                while (iterator.hasNext()) {
-                    Queue_Item item = iterator.next();
-                    if (Objects.equals(item.getImgCover(), track.getImgCover())) {
-                        first = home.getAndRemoveFromQueue(item);
+                for (Queue_Item item : que) {
+                    if ( Objects.equals(item.getFileName(), track.getFileName())) {
+                        home.getAndRemoveFromQueue(item);
                         break;
                     }
                 }
 
                 home.addToFront(track);
+                home.refresh_Queue();
                 home.setCurrentSong(track);
                 home.Play_track();
             }

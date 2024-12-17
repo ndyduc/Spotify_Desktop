@@ -14,6 +14,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Area;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 import java.awt.geom.GeneralPath;
@@ -38,10 +40,9 @@ public class Home implements Queue_Lis, Artist_Lis{
     private boolean isschuffle = false;
     private final JLabel crTitle = new JLabel();
     private final JLabel crArtist = new JLabel();
-    private final JLabel imgcrSong = new JLabel();
+    private final Rounded_Label imgcrSong = new Rounded_Label(new ImageIcon(),30);
     private JPanel centerbot = new JPanel();
     private final JLabel least = new JLabel();
-    private int duration;
     private ShapeIcon playIcon;
     private ShapeIcon pauseIcon;
     private JButton Pausebtn;
@@ -97,7 +98,7 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         main_center.setBackground(Color.BLACK);
         house = new House(30, this, window);
-        s_all = new Search_all(30,"cigarettes", stream, window, this);
+        s_all = new Search_all(30,"cigarettes", window, this);
         List<Playlists> pla = mongo.get_Playlists("_ndyduc_");
         playlist = new Playlist(30, pla.getFirst(), stream, window, this);
         Collection user = sc.getBestUser("Cigarettes after sex");
@@ -138,37 +139,31 @@ public class Home implements Queue_Lis, Artist_Lis{
         window.add(bottomPanel, BorderLayout.SOUTH);
 
         positionSlider.addChangeListener(e -> {
-            int currentValue = positionSlider.getValue();
-
-            // Khi kéo slider
+            int check = positionSlider.getValue();
+            if (check == mongo.get_Duration(item.getDuration())) {
+                Pausebtn.setIcon(playIcon);
+                isplaying = false;
+                stream.stop();
+            }
             if (positionSlider.getValueIsAdjusting()) {
-                isUserAdjusting = true; // Đang tua
-                stream.pause(); // Tạm dừng nhạc
+                isUserAdjusting = true;
+                stream.pause();
             } else {
-                // Khi kết thúc tua
                 if (isUserAdjusting) {
-                    // Cập nhật thời gian elapsedTime
-                    long newElapsedTime = currentValue * 1000L; // Slider trả về giây
-                    stream.elapsedTime = newElapsedTime;
-                    stream.startTime = System.currentTimeMillis() - newElapsedTime;
+                    long seconds = positionSlider.getValue(); // Giá trị giây từ slider
+                    position.setText(stream.formatTime(seconds)); // Cập nhật thời gian hiển thị
+                    stream.elapsedTime = seconds * 1000;
+                    stream.startTime = System.currentTimeMillis() - stream.elapsedTime;
 
-                    // Cập nhật hiển thị thời gian
-                    position.setText(stream.formatTime(currentValue));
-
-                    // Nếu tua tới cuối bài, dừng nhạc
-                    if (currentValue == duration) {
+                    if (seconds == mongo.get_Duration(item.getDuration())) {
                         Pausebtn.setIcon(playIcon);
-                        isplaying = false;
                         stream.stop();
-                    } else {
-                        // Phát lại nhạc từ vị trí mới
-                        stream.Play(item.getFileName());
-                        Pausebtn.setIcon(pauseIcon);
-                        stream.startTimer(position, positionSlider, duration); // Restart Timer
-                        isplaying = true;
                     }
-
-                    isUserAdjusting = false; // Đặt lại trạng thái
+                    stream.Play(item.getFileName());
+                    Pausebtn.setIcon(pauseIcon);
+                    stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration()));
+                    isplaying = true;
+                    isUserAdjusting = false; // Kết thúc việc điều chỉnh
                 }
             }
         });
@@ -233,11 +228,10 @@ public class Home implements Queue_Lis, Artist_Lis{
                 if (!isplaying) {
                     stream.Play(item.getFileName());
                     Pausebtn.setIcon(pauseIcon);
-                    stream.startTimer(position, positionSlider, duration); // Khởi động Timer
+                    stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration())); // Khởi động Timer
                 } else {
                     stream.pause();
                     Pausebtn.setIcon(playIcon);
-                    stream.stopTimer(); // Dừng Timer
                 }
                 isplaying = !isplaying;
             }
@@ -250,8 +244,7 @@ public class Home implements Queue_Lis, Artist_Lis{
             public void componentResized(ComponentEvent e) {
                 Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
                 Dimension windowSize = window.getSize();
-                if (windowSize.width == screenSize.width && windowSize.height == screenSize.height |
-                        window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
+                if (windowSize.width == screenSize.width && windowSize.height == screenSize.height | window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
                     updateToFullScreenLayout();
                     wit = 1150;
                 } else if (window.getExtendedState() == JFrame.NORMAL) {
@@ -463,7 +456,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         JPanel slider = new JPanel(new BorderLayout(10, 0));
         slider.setBackground(Color.BLACK);
 
-        positionSlider = getSlider(duration);
+        positionSlider = getSlider(mongo.get_Duration(item.getDuration()));
         slider.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
         slider.add(positionSlider, BorderLayout.CENTER);
 
@@ -490,6 +483,8 @@ public class Home implements Queue_Lis, Artist_Lis{
         gbc.gridwidth = 1; // Chiếm 1 cột
         gbc.gridheight = 3; // Chiếm 2 hàng
         gbc.anchor = GridBagConstraints.CENTER; // Căn giữa
+
+        imgcrSong.setPreferredSize(new Dimension(50,50));
         leftbot.add(imgcrSong, gbc);
 
         gbc.gridx = 1; // Cột 1
@@ -539,22 +534,20 @@ public class Home implements Queue_Lis, Artist_Lis{
 
     public void setCurrentSong(Queue_Item item) {
         this.item = item;
-        Thread currentSong = new Thread(() -> {
-            SwingUtilities.invokeLater(() -> {
-                try {
-                    URI urib = new URI(sc.IMG500x500(item.getImgCover()));
-                    imgcrSong.setIcon(new ImageIcon(urib.toURL())); // Sử dụng đối tượng hiện tại
-                    imgcrSong.setPreferredSize(new Dimension(50, 50));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-        });
-        currentSong.start();
+        imgcrSong.setPreferredSize(new Dimension(50,50));
+        new Thread(() -> {
+            try {
+                URI uri = new URI(sc.IMG500x500(item.getImgCover()));
+                ImageIcon image = new ImageIcon(uri.toURL());
+                SwingUtilities.invokeLater(() -> imgcrSong.setIcon(image));
+            } catch (URISyntaxException | MalformedURLException | NullPointerException e) {
+                SwingUtilities.invokeLater(() -> { imgcrSong.setIcon(new ImageIcon("src/main/resources/pngs/me.png")); });
+            }
+        }).start();
 
         crTitle.setText(item.getTitle());
         crTitle.setForeground(Color.WHITE);
-        crTitle.setPreferredSize(new Dimension(100, 10));
+        crTitle.setPreferredSize(new Dimension(100, 20));
         crTitle.setText("<html><body style='width: 100px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis'>"
                 + crTitle.getText() + "</body></html>");
         crTitle.setFont(new Font("Arial", Font.PLAIN, 13));
@@ -888,6 +881,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     }
     public void addToFront(Queue_Item item) {
         QueueDL.addFirst(item);
+        stream.stop();
         executor.submit(() -> {
             DLFile(item.getLink(), item.getFileName());
         });
@@ -907,7 +901,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     }
     public Queue_Item getAndRemoveFromQueue(Queue_Item i) {
         for (Queue_Item item : QueueDL) {
-            if (item.getImgCover().equals(i.getImgCover())) {
+            if (item.getFileName().equals(i.getFileName())) {
                 QueueDL.remove(item); // Xóa phần tử tìm thấy
                 return item;          // Trả về phần tử đã xóa
             }
@@ -931,7 +925,7 @@ public class Home implements Queue_Lis, Artist_Lis{
             File newFile = new File(DIRECTORY + "/" + file_name);
             File oldFile = new File(DOWNLOAD + "/" + file_name);
             if (newFile.exists() || oldFile.exists()) {
-                System.out.println("File đã tồn tại: " + newFile.getAbsolutePath());
+                System.out.println("File đã tồn tại: " + file_name);
                 return; // Không tải nếu file đã tồn tại
             }
 
@@ -954,28 +948,29 @@ public class Home implements Queue_Lis, Artist_Lis{
         }
     }
     public void Dl_for_pl(String link_file, String file_name) {
-        try {
-            File directory = new File(DOWNLOAD);
-            if (!directory.exists()) { directory.mkdirs();  }
+        executor.submit(() -> {
+            try {
+                File directory = new File(DOWNLOAD);
+                if (!directory.exists()) { directory.mkdirs();  }
 
-            File newFile = new File(DOWNLOAD + "/" + file_name);
-            if (newFile.exists()) { return; }
+                File newFile = new File(DOWNLOAD + "/" + file_name);
+                if (newFile.exists()) { return; }
+                // Tải file với yt-dlp
+                ProcessBuilder pb = new ProcessBuilder(
+                        "yt-dlp",
+                        "-f", "bestaudio[ext=mp3]",
+                        "--output", newFile.getAbsolutePath(),
+                        link_file
+                );
+                Process process = pb.start();
+                process.waitFor();
 
-            // Tải file với yt-dlp
-            ProcessBuilder pb = new ProcessBuilder(
-                    "yt-dlp",
-                    "-f", "bestaudio[ext=mp3]",
-                    "--output", newFile.getAbsolutePath(),
-                    link_file
-            );
-            Process process = pb.start();
-            process.waitFor();
-
-            System.out.println("Đã tải file: " + newFile.getAbsolutePath());
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Lỗi khi tải file: " + e.getMessage());
-        }
+                System.out.println("Đã tải file: " + newFile.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Lỗi khi tải file: " + e.getMessage());
+            }
+        });
     }
     public void Delete_filepl(String filename) {
         File file = new File(DOWNLOAD + "/" + filename);
@@ -987,10 +982,11 @@ public class Home implements Queue_Lis, Artist_Lis{
 
 
     public void Play_track(){
+        stream.stop();
         stream.Play(item.getFileName());
         isplaying = true;
         Pausebtn.setIcon(pauseIcon);
-        stream.startTimer(position, positionSlider, duration);
+        stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration()));
     }
 
     public int get_wit(){return wit;}

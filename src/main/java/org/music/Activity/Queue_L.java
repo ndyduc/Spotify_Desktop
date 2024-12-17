@@ -178,7 +178,7 @@ public class Queue_L extends Border_Radius {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                panel.setBackground(Color.decode("#1a1a1a"));
+                if (!first) panel.setBackground(Color.decode("#1a1a1a"));
             }
         });
         final Point[] initialClick = new Point[1];

@@ -22,27 +22,6 @@ public class Stream {
     public long startTime; // Thời gian tiep tuc phat
     public long elapsedTime; // Tổng thời gian đã trôi qua khi tạm dừng
     Timer timer;
-    public static String getFile(String url) {
-        String audioUrl = "";
-        try {
-            ProcessBuilder pb = new ProcessBuilder("youtube-dl", "-f", "best", "-g", url);
-            Process process = pb.start();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line);
-            }
-            process.waitFor();
-
-            audioUrl = output.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return audioUrl;
-    }
-
 
     private long calculateBytesToSkip(long elapsedTime) {
         final int BITRATE = 128; // tính bằng kbps
@@ -56,12 +35,13 @@ public class Stream {
             public void actionPerformed(ActionEvent e) {
                 long currentTime = System.currentTimeMillis();
                 long totalElapsed = elapsedTime + (currentTime - startTime);
-                long seconds = totalElapsed / 1000L;
+                long seconds = totalElapsed / 1000;
 
                 if (seconds >= duration) {
                     position.setText(formatTime(duration));
                     positionSlider.setValue(duration);
                     stopTimer();
+                    elapsedTime = 0;
                 } else {
                     position.setText(formatTime(seconds));
                     positionSlider.setValue((int) seconds);
@@ -110,7 +90,7 @@ public class Stream {
     }
 
     public void Play(String file_name) {
-        if (playerThread != null && playerThread.isAlive()) { stop();}
+        if (playerThread != null && playerThread.isAlive()) { playerThread.interrupt();}
 
         playerThread = new Thread(() -> {
             try {
@@ -121,18 +101,15 @@ public class Stream {
                         File check = new File("./mp3_queue" + "/" + file_name);
                         if (!check.exists()) {
                             System.out.println("File không tìm thấy. Đang thử lại sau 2 giây...");
-                            Thread.sleep(2000);  // Chờ 2 giây
+                            Thread.sleep(1000);  // Chờ 1 giây
                             file = new File("./mp3_queue" + "/" + file_name);  // Kiểm tra lại sự tồn tại của file
                         }
 
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        return;  // Nếu bị gián đoạn, thoát ra
-                    }
+                    } catch (InterruptedException e) {return; }
                 }
                 mp3Stream = new BufferedInputStream(new FileInputStream(file));
 
-                if (elapsedTime > 0) { mp3Stream.skip(calculateBytesToSkip(elapsedTime));}
+                if (elapsedTime > 0) { skipBytes(mp3Stream, calculateBytesToSkip(elapsedTime)); }
                 player = new AdvancedPlayer(mp3Stream);
                 startTime = System.currentTimeMillis(); // Ghi lại thời gian bắt đầu phát
 
@@ -144,18 +121,40 @@ public class Stream {
         playerThread.start();
     }
 
+    private void skipBytes(BufferedInputStream stream, long bytesToSkip) throws IOException {
+        long skipped = 0;
+        while (skipped < bytesToSkip) {
+            long remaining = bytesToSkip - skipped;
+            long skippedNow = stream.skip(remaining);
+            if (skippedNow == 0) {
+                // Nếu không thể skip thêm byte nào, kiểm tra EOF
+                if (stream.read() == -1) {
+                    throw new IOException("Reached end of stream before skipping desired bytes");
+                }
+                skippedNow = 1; // Đã đọc một byte và bỏ qua
+            }
+            skipped += skippedNow;
+        }
+    }
+
     public void stop() {
         if (player != null) {
-            player.close(); // Dừng phát nhạc
-            elapsedTime = 0; // Đặt lại thời gian đã trôi qua
-        }
-        if (mp3Stream != null) {
             try {
-                mp3Stream.close();
+                player.close(); // Đóng player
+                stopTimer();
+                elapsedTime = 0;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        if (mp3Stream != null) {
+            try {
+                mp3Stream.close(); // Đóng luồng âm thanh
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        elapsedTime = 0; // Đặt lại thời gian đã trôi qua
     }
 
     public void pause() {
@@ -173,42 +172,6 @@ public class Stream {
             ProcessBuilder pb = new ProcessBuilder("osascript", "-e", script);
             pb.start();
         } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void debugAudioSystem() {
-        try {
-            Mixer.Info[] mixers = AudioSystem.getMixerInfo();
-            for (Mixer.Info mixerInfo : mixers) {
-                Mixer mixer = AudioSystem.getMixer(mixerInfo);
-                System.out.println("Mixer: " + mixerInfo.getName());
-
-                // Liệt kê tất cả các Line khả dụng
-                Line.Info[] targetLines = mixer.getTargetLineInfo();
-                for (Line.Info targetLine : targetLines) {
-                    System.out.println("  Target Line: " + targetLine.toString());
-                }
-
-                Line.Info[] sourceLines = mixer.getSourceLineInfo();
-                for (Line.Info sourceLine : sourceLines) {
-                    System.out.println("  Source Line: " + sourceLine.toString());
-                }
-
-                // Kiểm tra các Port
-                if (mixer.isLineSupported(Port.Info.SPEAKER)) {
-                    Port port = (Port) mixer.getLine(Port.Info.SPEAKER);
-                    port.open();
-                    System.out.println("  Port opened: " + port.toString());
-
-                    Control[] controls = port.getControls();
-                    for (Control control : controls) {
-                        System.out.println("    Control: " + control.toString());
-                    }
-                    port.close();
-                }
-            }
-        } catch (Exception e) {
             e.printStackTrace();
         }
     }
