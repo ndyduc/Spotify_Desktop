@@ -167,6 +167,19 @@ public class Soundcloud {
         }
     }
 
+    public org.music.models.Search_Album.Collection get_album_by_id(int id) {
+        SoundcloudApi apiService = getClient().create(SoundcloudApi.class);
+        Call<org.music.models.Search_Album.Collection> call = apiService.getAlbumById(id, clientid);
+        try {
+            Response<org.music.models.Search_Album.Collection> response = call.execute();
+            if (response.isSuccessful()) {return response.body();}
+            return null;
+        } catch (IOException e) {
+            System.out.println("Failure: " + e.getMessage());
+            return null;
+        }
+    }
+
     public String IMG500x500(String url) {
         if (url != null && url.endsWith("large.jpg")) {
             return url.replace("large.jpg", "t500x500.jpg");

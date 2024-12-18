@@ -183,11 +183,21 @@ public class Queue_L extends Border_Radius {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                Queue_Item ne = home.getAndRemoveFromQueue(item);
-                home.addToFront(ne);
-                home.setCurrentSong(ne);
-                refresh_que();
-                home.Play_track();
+                if (e.getButton() == MouseEvent.BUTTON3) {
+                    System.out.println("Nhấn chuột phải vào nút");
+                    LinkedList<Queue_Item> queue = home.getQueueDL();
+                    if (!Objects.equals(item.getFileName(), queue.getFirst().getFileName())){
+                        home.getAndRemoveFromQueue(item);
+                        home.refresh_Queue();
+                    } else home.skipforward.doClick();
+
+                } else {
+                    Queue_Item ne = home.getAndRemoveFromQueue(item);
+                    home.addToFront(ne);
+                    home.setCurrentSong(ne);
+                    refresh_que();
+                    home.Play_track();
+                }
             }
         });
 

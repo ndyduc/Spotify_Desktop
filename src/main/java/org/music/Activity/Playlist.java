@@ -152,7 +152,7 @@ public class Playlist extends Border_Radius {
                 Dimension windowSize = window.getSize();
                 if (windowSize.width == screenSize.width && windowSize.height == screenSize.height |
                         window.getExtendedState() == JFrame.MAXIMIZED_BOTH) {
-                    scroll.setPreferredSize(new Dimension(1170,850));
+                    scroll.setPreferredSize(new Dimension(1170,760));
                     div_btn.setPreferredSize(new Dimension(1170,60));
                     cxz.setPreferredSize(new Dimension(1150,20));
                     full = true;
@@ -702,10 +702,6 @@ public class Playlist extends Border_Radius {
                 }
 
                 if (!store) {
-                    for (Queue_Item item : que) {
-                        home.Delete_file(item.getFileName());
-                    }
-
                     home.clearQueue();
                     for (Queue_Item item : inplaylist) { home.addToQueue(item); }
                 } else {
@@ -724,7 +720,7 @@ public class Playlist extends Border_Radius {
                 if(!store) home.addToFront(track);
                 else {
                     home.stream.stop();
-                    home.QueueDL.offer(track);
+                    home.QueueDL.addFirst(track);
                 }
                 home.refresh_Queue();
                 home.setCurrentSong(track);

@@ -1,6 +1,7 @@
 package org.music.Func;
 
 import javazoom.jl.player.advanced.AdvancedPlayer;
+import org.music.Activity.Home;
 import org.music.models.Queue_Item;
 
 import javax.sound.sampled.*;
@@ -22,6 +23,11 @@ public class Stream {
     public long startTime; // Thời gian tiep tuc phat
     public long elapsedTime; // Tổng thời gian đã trôi qua khi tạm dừng
     Timer timer;
+    Home home;
+
+    public Stream(Home home) {
+        this.home = home;
+    }
 
     private long calculateBytesToSkip(long elapsedTime) {
         final int BITRATE = 128; // tính bằng kbps
@@ -37,12 +43,17 @@ public class Stream {
                 long totalElapsed = elapsedTime + (currentTime - startTime);
                 long seconds = totalElapsed / 1000;
 
+                // Kiểm tra nếu đã đến thời gian tối đa (duration)
                 if (seconds >= duration) {
-                    position.setText(formatTime(duration));
-                    positionSlider.setValue(duration);
+                    Boolean isNext = home.next_song();
+
                     stopTimer();
                     elapsedTime = 0;
-                } else {
+                    if (isNext) {
+                        home.Pausebtn.doClick();
+                        home.Pausebtn.doClick();
+                    } else { System.out.println("Phát xong"); }
+                } else { // Cập nhật thời gian và slider
                     position.setText(formatTime(seconds));
                     positionSlider.setValue((int) seconds);
                 }
@@ -61,32 +72,6 @@ public class Stream {
         long minutes = seconds / 60;
         long remainingSeconds = seconds % 60;
         return String.format("%02d:%02d", minutes, remainingSeconds);
-    }
-
-    public void Play_Link(String url) {
-        if (playerThread != null && playerThread.isAlive()) {
-            stop(); // Dừng phát nhạc hiện tại
-        }
-
-        playerThread = new Thread(() -> {
-            try {
-                URI uri = new URI(url);
-                mp3Stream = new BufferedInputStream(uri.toURL().openStream());
-
-                if (elapsedTime > 0) {
-                    mp3Stream.skip(calculateBytesToSkip(elapsedTime)); // Bỏ qua đến vị trí mong muốn
-                }
-
-                player = new AdvancedPlayer(mp3Stream);
-                startTime = System.currentTimeMillis(); // Ghi lại thời gian bắt đầu phát
-
-                // Chạy nhạc
-                player.play();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-        playerThread.start();
     }
 
     public void Play(String file_name) {
@@ -140,28 +125,44 @@ public class Stream {
     public void stop() {
         if (player != null) {
             try {
+                stopTimer(); // Dừng Timer
                 player.close(); // Đóng player
-                stopTimer();
-                elapsedTime = 0;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
+        if (playerThread != null && playerThread.isAlive()) {
+            playerThread.interrupt(); // Dừng thread phát nhạc
+        }
+
         if (mp3Stream != null) {
             try {
                 mp3Stream.close(); // Đóng luồng âm thanh
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
         elapsedTime = 0; // Đặt lại thời gian đã trôi qua
+        startTime = 0;   // Đặt lại thời gian bắt đầu
     }
 
     public void pause() {
         if (player != null) {
-            stopTimer();
+            stopTimer(); // Dừng Timer
             elapsedTime += System.currentTimeMillis() - startTime; // Lưu thời gian đã trôi qua
-            player.close();
+            try {
+                if (playerThread != null && playerThread.isAlive()) {
+                    playerThread.interrupt(); // Dừng thread đang phát nhạc
+                }
+                if (mp3Stream != null) {
+                    mp3Stream.close(); // Đóng luồng âm thanh
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            player.close(); // Đóng player
         }
     }
 

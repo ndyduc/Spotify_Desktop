@@ -51,6 +51,12 @@ public interface SoundcloudApi {
             @Query("linked_partitioning") int linkedPartitioning
     );
 
+    @GET("playlists/{playlist_id}")
+    Call<org.music.models.Search_Album.Collection> getAlbumById(
+            @Path("playlist_id") long playlistId,
+            @Query("client_id") String clientId
+    );
+
     @GET("tracks/{track_id}")
     Call<Collection> get_track_by_id(
             @Path("track_id") int trackId,

@@ -4,10 +4,11 @@ import org.music.Components.*;
 import org.music.MongoDB;
 import org.music.getAPI.Soundcloud;
 import org.music.Func.Stream;
+import org.music.models.Albums;
 import org.music.models.DB.Playlists;
 import org.music.models.Queue_Item;
+import org.music.models.Search_Album.Track;
 import org.music.models.Search_User.Collection;
-import org.music.models.Track;
 
 import javax.swing.Timer;
 import javax.swing.*;
@@ -35,7 +36,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     public final Stream stream;
 
     Soundcloud sc = new Soundcloud();
-    private Queue_Item item;
+    public Queue_Item item;
     private boolean isplaying = false;
     private boolean isschuffle = false;
     private final JLabel crTitle = new JLabel();
@@ -48,7 +49,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     public JButton Pausebtn;
     JButton Shuffle;
     JButton skipback;
-    JButton skipforward;
+    public JButton skipforward;
     JButton Repeat;
 
     private JSlider positionSlider;
@@ -70,6 +71,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     private final Search_all s_all;
     private final Playlist playlist;
     private final Artist artist;
+    private final Album album;
     private final MongoDB mongo = new MongoDB();
     int wit = 860;
 
@@ -81,7 +83,7 @@ public class Home implements Queue_Lis, Artist_Lis{
 
     public Home() {
         String name_track = "K. Cigarettes";
-        stream = new Stream();
+        stream = new Stream(this);
         item = sc.getQueue_Item(name_track);
         addToQueue(item);
 
@@ -92,23 +94,27 @@ public class Home implements Queue_Lis, Artist_Lis{
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JPanel header = new JPanel(new BorderLayout());
-        getHeader(header,item);
+        getHeader(header, item);
         window.add(header, BorderLayout.NORTH);
         window.add(lib, BorderLayout.WEST);
 
         main_center.setBackground(Color.BLACK);
         house = new House(30, this, window);
-        s_all = new Search_all(30,"cigarettes", window, this);
+        s_all = new Search_all(30, "cigarettes", window, this);
         List<Playlists> pla = mongo.get_Playlists("_ndyduc_");
         playlist = new Playlist(30, pla.getFirst(), stream, window, this);
         Collection user = sc.getBestUser("Cigarettes after sex");
         artist = new Artist(30, user, stream, window, this);
+        Albums albums = sc.get_Albums("cry", 1);
+        album = new Album(30, albums, stream, window, this);
 
-        main_center.add(house,"house");
+        main_center.add(house, "house");
         main_center.add(s_all, "search_all");
-        main_center.add(playlist,"playlist");
-        main_center.add(artist,"artist");
+        main_center.add(playlist, "playlist");
+        main_center.add(artist, "artist");
+        main_center.add(album, "album");
 
+        center_home.show(main_center, "album");
 
         window.add(main_center, BorderLayout.CENTER);
 
@@ -138,41 +144,11 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         window.add(bottomPanel, BorderLayout.SOUTH);
 
-        positionSlider.addChangeListener(e -> {
-            int check = positionSlider.getValue();
-            if (check == mongo.get_Duration(item.getDuration())) {
-                Pausebtn.setIcon(playIcon);
-                isplaying = false;
-                stream.stop();
-            }
-            if (positionSlider.getValueIsAdjusting()) {
-                isUserAdjusting = true;
-                stream.pause();
-            } else {
-                if (isUserAdjusting) {
-                    long seconds = positionSlider.getValue(); // Giá trị giây từ slider
-                    position.setText(stream.formatTime(seconds)); // Cập nhật thời gian hiển thị
-                    stream.elapsedTime = seconds * 1000;
-                    stream.startTime = System.currentTimeMillis() - stream.elapsedTime;
-
-                    if (seconds == mongo.get_Duration(item.getDuration())) {
-                        Pausebtn.setIcon(playIcon);
-                        stream.stop();
-                    }
-                    stream.Play(item.getFileName());
-                    Pausebtn.setIcon(pauseIcon);
-                    stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration()));
-                    isplaying = true;
-                    isUserAdjusting = false; // Kết thúc việc điều chỉnh
-                }
-            }
-        });
-
         Artist.addActionListener(e -> {
             if (!showartist.get()) {
                 Artist.setIcon(loadIcon("src/main/resources/pngs/user-scan-green.png", 25, 25));
                 showartist.set(true);
-                tra = new Track_info(30, item, this, showqueue, Queue, showartist, Artist );
+                tra = new Track_info(30, item, this, showqueue, Queue, showartist, Artist);
                 tra.setShowArtistListener(this); // Thiết lập listener
                 window.add(tra, BorderLayout.EAST);
                 window.revalidate(); // Làm mới giao diện
@@ -194,6 +170,7 @@ public class Home implements Queue_Lis, Artist_Lis{
             }
         });
 
+        que = new Queue_L(30, this, showqueue, Queue, showartist, Artist);
         Queue.addActionListener(e -> {
             if (!showqueue.get()) {
                 // Tạo và thêm Queue_L khi showqueue đang là false
@@ -220,25 +197,24 @@ public class Home implements Queue_Lis, Artist_Lis{
                 showqueue.set(false);
             }
         });
-        Queue.doClick();
 
-        Pausebtn.addMouseListener(new MouseAdapter() {
+        Pausebtn.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                if (!isplaying) {
-                    stream.Play(item.getFileName());
-                    Pausebtn.setIcon(pauseIcon);
-                    stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration())); // Khởi động Timer
-                } else {
+            public void actionPerformed(ActionEvent e) {
+                if (isplaying) {
                     stream.pause();
-                    Pausebtn.setIcon(playIcon);
+                    Pausebtn.setIcon(playIcon);  // Đổi icon thành Play
+                } else {
+                    stream.Play(item.getFileName());
+                    Pausebtn.setIcon(pauseIcon);  // Đổi icon thành Pause
+                    stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration())); // Khởi động Timer
                 }
-                isplaying = !isplaying;
+                isplaying = !isplaying;  // Đổi trạng thái phát nhạc
             }
         });
 
         InputMap im = Pausebtn.getInputMap();
-        im.put( KeyStroke.getKeyStroke( "SPACE" ), "pressed" );
+        im.put(KeyStroke.getKeyStroke("SPACE"), "pressed");
         window.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -249,7 +225,7 @@ public class Home implements Queue_Lis, Artist_Lis{
                     wit = 1150;
                 } else if (window.getExtendedState() == JFrame.NORMAL) {
                     updateToNormalLayout();
-                    wit = 860 ;
+                    wit = 860;
                 }
             }
         });
@@ -257,6 +233,35 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         window.setLocationRelativeTo(null);  // Center window on the screen
         window.setVisible(true);
+
+        positionSlider.addChangeListener(e -> {
+            int currentValue = positionSlider.getValue(); // Lấy giá trị hiện tại của slider
+            int maxDuration = mongo.get_Duration(item.getDuration()); // Tổng thời lượng bài hát
+            // Người dùng đang điều chỉnh slider
+            if (positionSlider.getValueIsAdjusting()) {
+                if (isplaying) { stream.pause(); }// Tạm dừng nhạc nếu đang phát
+                isUserAdjusting = true; // Đánh dấu đang điều chỉnh
+            } else { // Người dùng kết thúc việc điều chỉnh
+                if (currentValue >= maxDuration) {  // Kiểm tra khi slider chạm giá trị tối đa
+                    System.out.println("phát xong");
+                    stop_stream(); // Dừng stream khi hết bài trong queue
+                }
+                if (isUserAdjusting) { // Giá trị giây từ slider
+                    stream.elapsedTime = (long) currentValue * 1000; // Cập nhật elapsedTime
+                    stream.startTime = System.currentTimeMillis() - stream.elapsedTime; // Đồng bộ thời gian
+                    position.setText(stream.formatTime(currentValue)); // Cập nhật thời gian hiển thị
+                    // Phát lại từ vị trí mới
+                    stream.Play(item.getFileName());
+                    Pausebtn.setIcon(pauseIcon);
+                    // Khởi động lại timer
+                    stream.startTimer(position, positionSlider, maxDuration);
+                    isplaying = true;
+                    isUserAdjusting = false; // Kết thúc điều chỉnh
+                }
+            }
+        });
+
+
     }
 
 
@@ -439,6 +444,17 @@ public class Home implements Queue_Lis, Artist_Lis{
                 case 2:
                     Repeat.setIcon(loadIcon("src/main/resources/pngs/repeat-once.png",20,20)); // Trạng thái 2: repeat-one.png
                     break;
+            }
+        });
+
+        skipforward.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean next = next_song();
+                if (next) {
+                    Pausebtn.doClick();
+                    Pausebtn.doClick();
+                }
             }
         });
 
@@ -701,6 +717,11 @@ public class Home implements Queue_Lis, Artist_Lis{
         center_home.show(main_center,"playlist");
     }
 
+    public void reload_album(org.music.models.Search_Album.Collection track){
+        album.reload_album(track);
+        center_home.show(main_center, "album");
+    }
+
     public void createPopup(JButton button, JPopupMenu popup) {
         button.addActionListener(e -> popup.show(button, 0, button.getHeight()));
     }
@@ -737,6 +758,7 @@ public class Home implements Queue_Lis, Artist_Lis{
         return popupMenu;
     }
 
+
     public JPopupMenu popup_playlist(org.music.models.Search_Tracks.Collection i) {
         JPopupMenu popupMenu = new JPopupMenu();
         popupMenu.setBackground(Color.decode("#1a1a1a"));
@@ -748,22 +770,8 @@ public class Home implements Queue_Lis, Artist_Lis{
             menuItem.setBackground(Color.decode("#1a1a1a"));
             menuItem.setForeground(Color.WHITE);
             menuItem.addActionListener(e -> {
-                Queue_Item ne = new Queue_Item();
-                ne.setImgCover(i.getArtwork_url());
-                ne.setTitle(i.getTitle());
-                String nam = (i.getPublisher_metadata() != null && i.getPublisher_metadata().getArtist() != null)
-                        ? i.getPublisher_metadata().getArtist()
-                        : i.getUser().getUsername();
-                ne.setArtist(nam);
-                String album = (i.getPublisher_metadata().getAlbum_title() != null) ? i.getPublisher_metadata().getAlbum_title():"unknown";
-                ne.setAlbum(album);
-                ne.setFileName(i.getTitle()+" - "+nam);
-                ne.setLink(i.getPermalink_url());
+                Queue_Item ne = cv_track_to_queuei(i);
                 ne.setWhere(playlist.getId());
-                ne.setArtist_id(i.getUser_id());
-                ne.setDuration(i.getDuration());
-                ne.setGenre(i.getGenre());
-
                 if (mongo.isSongExists(i.getPermalink_url(), playlist.getId())) JOptionPane.showMessageDialog(null, "This song is already add to "+ playlist.getName());
                 else mongo.Insert_Song(ne);
             });
@@ -772,6 +780,62 @@ public class Home implements Queue_Lis, Artist_Lis{
 
         return popupMenu;
     }
+
+    public JPopupMenu popup_Album(org.music.models.Search_Album.Track i, JButton button) {
+        JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu.setBackground(Color.decode("#1a1a1a"));
+        popupMenu.setForeground(Color.WHITE);
+
+        JMenuItem option1 = new JMenuItem("Add to Playlist");
+        JMenuItem option2 = new JMenuItem("Add to Queue");
+        option1.setBackground(Color.decode("#1a1a1a"));
+        option1.setForeground(Color.WHITE);
+        option2.setBackground(Color.decode("#1a1a1a"));
+        option2.setForeground(Color.WHITE);
+
+        popupMenu.add(option1);
+        popupMenu.add(option2);
+
+        JPopupMenu playlistPopup = popup_al(i);
+
+        option1.addActionListener(e -> {
+            popupMenu.setVisible(false);
+            Component invoker = popupMenu.getInvoker();
+            if (invoker != null) {
+                playlistPopup.show(invoker, 0, button.getHeight());
+            }
+        });
+
+        option2.addActionListener(e -> {
+            addToQueue(album.track_to_queit(i));
+        });
+
+        return popupMenu;
+    }
+
+
+    public JPopupMenu popup_al(org.music.models.Search_Album.Track i) {
+        JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu.setBackground(Color.decode("#1a1a1a"));
+        popupMenu.setForeground(Color.WHITE);
+
+        List<Playlists> playlists = mongo.get_Playlists("_ndyduc_");
+        for (Playlists playlist : playlists) {
+            JMenuItem menuItem = new JMenuItem(playlist.getName());
+            menuItem.setBackground(Color.decode("#1a1a1a"));
+            menuItem.setForeground(Color.WHITE);
+            menuItem.addActionListener(e -> {
+                Queue_Item ne = album.track_to_queit(i);
+                ne.setWhere(playlist.getId());
+                if (mongo.isSongExists(i.getPermalink_url(), playlist.getId())) JOptionPane.showMessageDialog(null, "This song is already add to "+ playlist.getName());
+                else mongo.Insert_Song(ne);
+            });
+            popupMenu.add(menuItem);
+        }
+
+        return popupMenu;
+    }
+
 
     public JPopupMenu popup_Album(Queue_Item i, JButton button) {
         JPopupMenu popupMenu = new JPopupMenu();
@@ -841,18 +905,22 @@ public class Home implements Queue_Lis, Artist_Lis{
         center_home.show(main_center, "artist");
     }
 
-    public void play_clicked(){ Pausebtn.doClick();}
-
-    public Queue_Item cv_track_to_queuei(org.music.models.Search_Tracks.Collection tracks) {
-        Queue_Item item = new Queue_Item();
-        item.setTitle(tracks.getTitle());
-        item.setArtist(tracks.getUser().getUsername());
-        item.setLink(tracks.getPermalink_url());
-        item.setFileName(tracks.getTitle()+" - "+tracks.getUser().getUsername()+".mp3");
-        item.setImgCover(tracks.getArtwork_url());
-        item.setDuration(tracks.getDuration());
-        item.setGenre(tracks.getGenre());
-        return item;
+    public Queue_Item cv_track_to_queuei(org.music.models.Search_Tracks.Collection i) {
+        Queue_Item ne = new Queue_Item();
+        ne.setImgCover(i.getArtwork_url());
+        ne.setTitle(i.getTitle());
+        String nam = (i.getPublisher_metadata() != null && i.getPublisher_metadata().getArtist() != null)
+                ? i.getPublisher_metadata().getArtist()
+                : i.getUser().getUsername();
+        ne.setArtist(nam);
+        String album = (i.getPublisher_metadata().getAlbum_title() != null) ? i.getPublisher_metadata().getAlbum_title():"unknown";
+        ne.setAlbum(album);
+        ne.setFileName(i.getTitle()+" - "+nam);
+        ne.setLink(i.getPermalink_url());
+        ne.setArtist_id(i.getUser_id());
+        ne.setDuration(i.getDuration());
+        ne.setGenre(i.getGenre());
+        return ne;
     }
 
     public void refresh_House(){
@@ -886,15 +954,11 @@ public class Home implements Queue_Lis, Artist_Lis{
             DLFile(item.getLink(), item.getFileName());
         });
     }
-    public LinkedList<Queue_Item> getQueueDL() {
-        return QueueDL;
-    }
+    public LinkedList<Queue_Item> getQueueDL() { return QueueDL; }
     public void clearQueue() {
         for (Queue_Item song : QueueDL) {
             File file = new File(DIRECTORY + "/" + song.getFileName());
-            if (file.exists()) {
-                file.delete();
-            }
+            if (file.exists()) { Delete_file(song.getFileName());  }
         }
         QueueDL.clear();
         System.out.println("Hàng đợi đã được xóa.");
@@ -908,7 +972,6 @@ public class Home implements Queue_Lis, Artist_Lis{
         }
         return null; // Không tìm thấy, trả về null
     }
-
     public void Delete_file(String filename) {
         File file = new File(DIRECTORY + "/" + filename);
         if (file.exists()) {
@@ -980,19 +1043,38 @@ public class Home implements Queue_Lis, Artist_Lis{
 
 
     public void Play_track(){
-        stream.Play(item.getFileName());
         isplaying = true;
         positionSlider.setValue(0);
         Pausebtn.setIcon(pauseIcon);
+        stream.stop();
+        stream.Play(item.getFileName());
         stream.startTimer(position, positionSlider, mongo.get_Duration(item.getDuration()));
     }
 
     public void stop_stream(){
-        stream.pause();
+        stream.stop();
         Pausebtn.setIcon(playIcon);
         isplaying = false;
     }
     public int get_wit(){return wit;}
+
+    public Boolean next_song(){
+        pollFromQueue(); // Xóa bài hiện tại khỏi queue
+        LinkedList<Queue_Item> queue = getQueueDL();
+
+        Queue_Item next = queue.isEmpty() ? null : queue.getFirst(); // Lấy bài tiếp theo nếu có
+
+        if (next != null) {
+            refresh_Queue(); // Làm mới giao diện queue
+            setCurrentSong(next); // Cập nhật bài hát hiện tại
+            Play_track();
+            return true;
+        } else {
+            System.out.println("Run out of queue");
+            stop_stream(); // Dừng stream khi hết bài trong queue
+            return false;
+        }
+    }
 }
 
 

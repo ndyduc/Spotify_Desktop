@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 public class Collection{
-    public Object artwork_url;
+    public String  artwork_url;
     public Date created_at;
     public String description;
     public int duration;
@@ -41,7 +41,7 @@ public class Collection{
     public ArrayList<Track> tracks;
     public int track_count;
 
-    public Object getArtwork_url() {
+    public String getArtwork_url() {
         return artwork_url;
     }
 

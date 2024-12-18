@@ -522,6 +522,9 @@ public class Search_all extends Border_Radius {
                 public void mouseExited(MouseEvent e) {
                     b.setBackground(Color.decode("#1a1a1a"));
                 }
+
+                @Override
+                public void mouseClicked(MouseEvent e) { home.reload_album(i); }
             });
 
             return b;
@@ -610,6 +613,11 @@ public class Search_all extends Border_Radius {
             @Override
             public void mouseExited(MouseEvent e) {
                 a.setBackground(Color.decode("#1a1a1a"));
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.reload_Artist(i.getId(), width == 1150 ? 1150 : 860);
             }
         });
 
@@ -941,6 +949,11 @@ public class Search_all extends Border_Radius {
             @Override
             public void mouseExited(MouseEvent e) {
                 a.setBackground(Color.decode("#1a1a1a"));
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.reload_album(i);
             }
         });
 
