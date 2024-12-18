@@ -79,7 +79,7 @@ public class House extends Border_Radius {
 
         Border_Radius empty = new Border_Radius(30);
         empty.setBackground(Color.decode("#1a1a1a"));
-        empty.setPreferredSize(new Dimension(600, 200));
+        empty.setPreferredSize(new Dimension(600, 180));
         main.add(empty, BorderLayout.SOUTH);
 
         JScrollPane scrollPane = new JScrollPane(main);
@@ -201,6 +201,13 @@ public class House extends Border_Radius {
 
         item.add(img_ar, BorderLayout.NORTH);
         item.add(name_ar, BorderLayout.SOUTH);
+
+        item.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                home.reload_album(i);
+            }
+        });
 
         return item;
     }

@@ -114,8 +114,6 @@ public class Home implements Queue_Lis, Artist_Lis{
         main_center.add(artist, "artist");
         main_center.add(album, "album");
 
-        center_home.show(main_center, "album");
-
         window.add(main_center, BorderLayout.CENTER);
 
         JPanel centerContainer = new JPanel();
