@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executors;import java.util.Collections;
 
 public class Home implements Queue_Lis, Artist_Lis{
     JFrame window = new JFrame("_ndyduc_");
@@ -76,6 +76,7 @@ public class Home implements Queue_Lis, Artist_Lis{
     int wit = 860;
 
     public final LinkedList<Queue_Item> QueueDL = new LinkedList<>();  // Hàng đợi lưu đường dẫn file
+    public LinkedList<Queue_Item> shuffle_queue = new LinkedList<>();
     static final String DIRECTORY = "./mp3_queue";
     static final String DOWNLOAD = "./mp3_playlist";
 
@@ -423,9 +424,21 @@ public class Home implements Queue_Lis, Artist_Lis{
             if (!isschuffle){
                 Shuffle.setIcon(loadIcon("src/main/resources/pngs/arrows-shuffle-green.png", 20, 20));
                 isschuffle = true;
+                shuffle_queue.addAll(QueueDL);
+
+                ArrayList<Queue_Item> tempList = new ArrayList<>(QueueDL);
+
+                // Trộn ngẫu nhiên ArrayList
+                Collections.shuffle(tempList);
+                QueueDL.clear();
+                QueueDL.addAll(tempList);
+                refresh_Queue();
             } else {
                 Shuffle.setIcon(loadIcon("src/main/resources/pngs/arrows-shuffle.png", 20, 20));
                 isschuffle = false;
+                QueueDL.clear();
+                QueueDL.addAll(shuffle_queue);
+                refresh_Queue();
             }
         });
 
